@@ -7,10 +7,10 @@ SDIR=src
 
 LIBS=-lm -pthread
 
-_DEPS = lexer.h list.h object.h error.h list.h
+_DEPS = lexer.h parser.h list.h object.h error.h list.h scheme.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = main.o lexer.o list.o object.o error.o list.o
+_OBJ = main.o lexer.o parser.o list.o object.o error.o list.o scheme.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 OUTPUT = scheme

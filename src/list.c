@@ -9,24 +9,65 @@ int Scheme_IsNull(scheme_object * obj) {
 }
 
 #define TEST_NULL(obj, fail) if(obj==NULL){Scheme_SetError("operation on null object");return fail;}
-scheme_object * Scheme_car(scheme_object * obj) {
+scheme_object * Scheme_Car(scheme_object * obj) {
 	TEST_NULL(obj, NULL);
 
 	scheme_pair * pair = Scheme_GetPair(obj);
 	if (!pair) return NULL;
 
-	if (pair->car == NULL)
-		return NULL;
-	else    return pair->car;
+	return pair->car;
 }
 
-scheme_object * Scheme_cdr(scheme_object * obj) {
+scheme_object * Scheme_Cdr(scheme_object * obj) {
 	TEST_NULL(obj, NULL);
 
 	scheme_pair * pair = Scheme_GetPair(obj);
 	if (!pair) return NULL;
 
-	if (pair->cdr == NULL)
+	return pair->cdr;
+}
+
+scheme_object * Scheme_Cons(scheme_object * a, scheme_object * b) {
+	if (a && a->type == SCHEME_NULL) a = NULL;
+	if (b && b->type == SCHEME_NULL) b = NULL;
+	return Scheme_CreatePair(a , b);
+}
+
+scheme_object * Scheme_ListFromArray(scheme_object ** array, int count) {
+	if (count == 0) return Scheme_CreateNull();
+	if (count < 0) {
+		Scheme_SetError("Scheme_ListFromArray() : bad count");
 		return NULL;
-	else    return pair->cdr;
-} 
+	}
+
+	scheme_object * base = Scheme_CreatePair(array[0], NULL),
+	              * prev = base;
+	int i;
+	for (i = 1; i < count; ++i) {
+		scheme_object * new_pair = Scheme_CreatePair(array[i], NULL);
+		Scheme_GetPair(prev)->cdr = new_pair;
+		prev = new_pair;
+	}
+
+	return base;
+}
+#include <stdio.h>
+scheme_object * Scheme_AppendList(scheme_object * list, scheme_object * obj) {
+	if (!list || list->type != SCHEME_PAIR) {
+		Scheme_SetError("attempt to append to non-pair object");
+		return NULL;
+	}
+
+	scheme_object * iter = list;
+	while (1) {
+		scheme_pair * pair = Scheme_GetPair(iter);
+		if (!pair->cdr) {
+			pair->cdr = Scheme_CreatePair(obj, NULL);
+			return list;
+		} else {
+			iter = pair->cdr;
+		}
+	}
+
+	return NULL;
+}

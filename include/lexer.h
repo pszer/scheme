@@ -58,6 +58,7 @@ struct lexer {
 	};
 
 	int curr_line, curr_char;
+	int current_token;
 };
 
 // 1 for success, 0 for error
@@ -72,6 +73,7 @@ char * Lexer_GetError(void);
 void   Lexer_SetError(char * str);
 
 int Lexer_NextToken(struct lexer * lex);
+int Lexer_CurrToken(struct lexer * lex);
 int Lexer_GetCharType(char c);
 int Lexer_IsValidSymbolChar(char c);
 char Lexer_CurrChar(struct lexer * lex);

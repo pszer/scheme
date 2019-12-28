@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "error.h"
 
@@ -73,3 +74,6 @@ scheme_object * Scheme_CreatePair(scheme_object * car, scheme_object * cdr);
 scheme_object * Scheme_CreateInteger(long long integer);
 scheme_object * Scheme_CreateRational(long long numerator, long long denominator);
 scheme_object * Scheme_CreateDouble(double value);
+
+scheme_object * Scheme_CreateSymbolLiteral(const char * symbol);
+scheme_object * Scheme_CreateStringLiteral(const char * string);

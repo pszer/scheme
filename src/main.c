@@ -1,5 +1,5 @@
-#include "lexer.h"
-#include "list.h"
+#include "parser.h"
+#include "scheme.h"
 
 void test_lexer(struct lexer * lex) {
 	int token;
@@ -10,30 +10,32 @@ void test_lexer(struct lexer * lex) {
 		switch (token) {
 		case TOKEN_STRING:
 			obj = Scheme_CreateString(lex->string);
-			printf("\"%s\" ", Scheme_GetString(obj)->string);
+			Scheme_Display(obj);
+			Scheme_Newline();
 			Scheme_FreeObject(obj);
 			break;
 		case TOKEN_SYMBOL:
 			obj = Scheme_CreateSymbol(lex->symbol);
-			printf("'%s ", Scheme_GetSymbol(obj)->symbol);
+			Scheme_Display(obj);
+			Scheme_Newline();
 			Scheme_FreeObject(obj);
 			break;
 		case TOKEN_NUMBER:
-			if (lex->number_type == NUMBER_DOUBLE) {
+			if (lex->number_type == NUMBER_DOUBLE)
 				obj = Scheme_CreateDouble(lex->double_val);
-				printf("%f ", Scheme_GetNumber(obj)->double_val);
-			} else if (lex->number_type == NUMBER_INTEGER) {
+			else if (lex->number_type == NUMBER_INTEGER)
 				obj = Scheme_CreateInteger(lex->integer_val);
-				printf("%lli ", Scheme_GetNumber(obj)->integer_val);
-			}
+			Scheme_Display(obj);
+			Scheme_Newline();
 			Scheme_FreeObject(obj);
 			break;
 		default:
 			printf("%c ", (char)token);
+			Scheme_Newline();
 			break;
 		}
 	}
-	putchar('\n');
+	Scheme_Newline();
 
 	char * err;
 	if ((err = Lexer_GetError()) != NULL) {
@@ -41,7 +43,7 @@ void test_lexer(struct lexer * lex) {
 	}
 }
 
-int main( int argc, char ** argv ) {
+int main(int argc, char ** argv) {
 	struct lexer lex;
 	FILE * file = fopen("test.scm", "r");
 	if (!file) {
@@ -54,8 +56,16 @@ int main( int argc, char ** argv ) {
 		return 0;
 	}
 
-	test_lexer(&lex);
+	//test_lexer(&lex);
+	do {
+		scheme_object * obj = Parser_Parse(&lex);
+		Scheme_Display(obj);
+		printf("\n");
+		scheme_object * car, * cdr, * base = obj;
 
+		Scheme_FreeObject(obj);
+	} while (Lexer_CurrToken(&lex) != TOKEN_EOF);
+	
 	fclose(file);
 	Lexer_Free(&lex);
 	return 0;

@@ -95,7 +95,11 @@ char Lexer_NextChar(struct lexer * lex) {
 	return c;
 }
 
-int Lexer_NextToken(struct lexer * lex) {
+int Lexer_CurrToken(struct lexer * lex) {
+	return lex->current_token;
+}
+
+int __Lexer_NextToken(struct lexer * lex) {
 	Lexer_GetError(); // nulls error flag
 	char last;
 
@@ -120,6 +124,11 @@ int Lexer_NextToken(struct lexer * lex) {
 			return TOKEN_EOF;
 		}
 	}
+}
+
+int Lexer_NextToken(struct lexer * lex) {
+	lex->current_token = __Lexer_NextToken(lex);
+	return lex->current_token;
 }
 
 void Lexer_HandleWhitespaces(struct lexer * lex) {
@@ -199,20 +208,18 @@ int Lexer_AnalyseNumber(struct lexer * lex) {
 		return TOKEN_SYMBOL;
 	}
 
-	int type = NUMBER_INTEGER;
+	lex->number_type = NUMBER_INTEGER;
 	char * c;
 	for (c = buff.buffer; *c; ++c) {
 		if (*c == '.') {
-			type = NUMBER_DOUBLE;
+			lex->number_type = NUMBER_DOUBLE;
 			break;
 		}
 	}
 
-	lex->number_type = type;
-
 	char * endptr, * lastchar;
 
-	if (type == NUMBER_DOUBLE)
+	if (lex->number_type == NUMBER_DOUBLE)
 		lex->double_val   = strtod(buff.buffer, &endptr);
 	else
 		lex->integer_val = strtoll(buff.buffer, &endptr, 10);

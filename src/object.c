@@ -78,7 +78,7 @@ void Scheme_FreeString(scheme_string * string) {
 
 void Scheme_FreeSymbol(scheme_symbol * symbol) {
 	if (symbol == NULL) return;
-	if (symbol->string) free(symbol->string);
+	if (symbol->symbol) free(symbol->symbol);
 	free(symbol);
 }
 
@@ -154,8 +154,39 @@ scheme_object * Scheme_CreateString(char * string_str) {
 	int code = Scheme_AllocateObject(&obj, SCHEME_STRING);
 	if (!code) return NULL;
 
-	scheme_string * string = Scheme_GetSymbol(obj);
+	scheme_string * string = Scheme_GetString(obj);
 	string->string = string_str;
+
+	return obj;
+}
+
+scheme_object * Scheme_CreateSymbolLiteral(const char * symbol_str) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_SYMBOL);
+	if (!code) return NULL;
+
+	int len = strlen(symbol_str);
+	char * str = malloc(len + 1);
+	strcpy(str, symbol_str);
+
+	scheme_symbol * symbol = Scheme_GetSymbol(obj);
+	symbol->symbol = str;
+
+	return obj;
+
+}
+
+scheme_object * Scheme_CreateStringLiteral(const char * string_str) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_STRING);
+	if (!code) return NULL;
+
+	int len = strlen(string_str);
+	char * str = malloc(len + 1);
+	strcpy(str, string_str);
+
+	scheme_string * string = Scheme_GetString(obj);
+	string->string = str;
 
 	return obj;
 }

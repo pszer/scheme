@@ -1,4 +1,4 @@
 (define (square n) (* n n))
 
-(expt 5 ;;; this is a comment
-	(- 1 10 -1000))
+(square (square 50))
+
