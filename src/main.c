@@ -1,18 +1,28 @@
 #include "lexer.h"
+#include "list.h"
 
 void test_lexer(struct lexer * lex) {
 	int token;
+
+	scheme_object * obj;
+
 	while ((token = Lexer_NextToken(lex)) != TOKEN_EOF) {
+		printf("booka\n");
 		switch (token) {
 		case TOKEN_STRING:
-			printf("\"%s\" ", lex->string);
-			free(lex->string);
+			obj = Scheme_CreateString(lex->string);
+			printf("\"%s\" ", Scheme_GetString(obj)->string);
+			Scheme_FreeObject(obj);
 			break;
 		case TOKEN_SYMBOL:
-			printf("'%s ", lex->symbol);
-			free(lex->symbol);
+			obj = Scheme_CreateSymbol(lex->symbol);
+			printf("\"%s\" ", Scheme_GetSymbol(obj)->symbol);
+			Scheme_FreeObject(obj);
 			break;
 		case TOKEN_NUMBER:
+			/*obj = Scheme_CreateDouble(lex->number);
+			printf("%f ", Scheme_GetNumber(obj)->double_val);
+			Scheme_FreeObject(obj);*/
 			printf("%f ", lex->number);
 			break;
 		default:
@@ -29,6 +39,10 @@ void test_lexer(struct lexer * lex) {
 }
 
 int main( int argc, char ** argv ) {
+	scheme_object * obj;
+	obj = Scheme_CreateSymbol(malloc(5));
+	Scheme_FreeObject(obj);
+
 	struct lexer lex;
 	FILE * file = fopen("test.scm", "r");
 	if (!file) {

@@ -23,6 +23,10 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 	case SCHEME_STRING:
 		(*object)->payload = malloc(sizeof(scheme_string));
 		break;
+	default:
+		free(*object);
+		Scheme_SetError("invalid type given to Scheme_AllocateObject");
+		return 0;
 	}
 
 	if ((*object)->payload == NULL) {
@@ -30,6 +34,8 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 		Scheme_SetError("runtime malloc(payload) error");
 		return 0;
 	}
+
+	(*object)->type = type;
 
 	return 1;
 }
@@ -77,7 +83,7 @@ void Scheme_FreeSymbol(scheme_symbol * symbol) {
 }
 
 scheme_pair * Scheme_GetPair(scheme_object * obj) {
-	if (obj->type != scheme_pair) {
+	if (obj->type != SCHEME_PAIR) {
 		Scheme_SetError("Attempting to access non-pair object as a pair");
 		return NULL;
 	}
@@ -86,7 +92,7 @@ scheme_pair * Scheme_GetPair(scheme_object * obj) {
 }
 
 scheme_string * Scheme_GetString(scheme_object * obj) {
-	if (obj->type != scheme_string) {
+	if (obj->type != SCHEME_STRING) {
 		Scheme_SetError("Attempting to access non-string object as a string");
 		return NULL;
 	}
@@ -95,7 +101,7 @@ scheme_string * Scheme_GetString(scheme_object * obj) {
 }
 
 scheme_number * Scheme_GetNumber(scheme_object * obj) {
-	if (obj->type != scheme_pair) {
+	if (obj->type != SCHEME_PAIR) {
 		Scheme_SetError("Attempting to access non-number object as a number");
 		return NULL;
 	}
@@ -104,7 +110,7 @@ scheme_number * Scheme_GetNumber(scheme_object * obj) {
 }
 
 scheme_symbol * Scheme_GetSymbol(scheme_object * obj) {
-	if (obj->type != scheme_pair) {
+	if (obj->type != SCHEME_PAIR) {
 		Scheme_SetError("Attempting to access non-symbol object as a symbol");
 		return NULL;
 	}
@@ -120,14 +126,76 @@ scheme_object * Scheme_CreateNull( void ) {
 } 
 
 scheme_object * Scheme_CreatePair(scheme_object * car, scheme_object * cdr) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_PAIR);
+	if (!code) return NULL;
+
+	scheme_pair * pair = Scheme_GetPair(obj);
+	pair->car = car;
+	pair->cdr = cdr;
+
+	return obj;
+}
+
+scheme_object * Scheme_CreateSymbol(char * symbol_str) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_SYMBOL);
+	if (!code) return NULL;
+
+	scheme_symbol * symbol = Scheme_GetSymbol(obj);
+	symbol->symbol = symbol_str;
+
+	return obj;
+
+}
+
+scheme_object * Scheme_CreateString(char * string_str) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_STRING);
+	if (!code) return NULL;
+
+	scheme_string * string = Scheme_GetSymbol(obj);
+	string->string = string_str;
+
+	return obj;
 }
 
 scheme_object * Scheme_CreateInteger(long long integer) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_NUMBER);
+	if (!code) return NULL;
 
-}
-scheme_object * Scheme_CreateRational(long long numerator, long long denominator) {
+	scheme_number * num = Scheme_GetNumber(obj);
+	num->type = NUMBER_INTEGER;
+	num->integer_val = integer;
 
+	return obj;
 }
+
 scheme_object * Scheme_CreateDouble(double value) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_NUMBER);
+	if (!code) return NULL;
+
+	scheme_number * num = Scheme_GetNumber(obj);
+	num->type = NUMBER_DOUBLE;
+	num->double_val = value;
+
+	return obj;
+}
+
+scheme_object * Scheme_CreateRational(long long numerator,
+                                      long long denominator)
+{
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_NUMBER);
+	if (!code) return NULL;
+
+	scheme_number * num = Scheme_GetNumber(obj);
+	num->type = NUMBER_RATIONAL;
+	num->numerator = numerator;
+	num->denominator = denominator;
+
+	return obj;
 
 }

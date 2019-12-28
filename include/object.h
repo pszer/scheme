@@ -48,7 +48,9 @@ typedef struct scheme_number {
 void Scheme_FreeNumber(scheme_number * number);
 
 typedef struct scheme_string {
-	char * string;
+	union {
+		char * string, * symbol;
+	};
 } scheme_string;
 typedef struct scheme_string scheme_symbol;
 
@@ -60,7 +62,13 @@ scheme_string * Scheme_GetString(scheme_object * obj);
 scheme_number * Scheme_GetNumber(scheme_object * obj);
 scheme_symbol * Scheme_GetSymbol(scheme_object * obj);
 
+/* Object constructors
+ * CreateSymbol and CreateString assume
+ * string given as argument is allocated on the heap
+ */
 scheme_object * Scheme_CreateNull( void );
+scheme_object * Scheme_CreateSymbol(char * symbol);
+scheme_object * Scheme_CreateString(char * string);
 scheme_object * Scheme_CreatePair(scheme_object * car, scheme_object * cdr);
 scheme_object * Scheme_CreateInteger(long long integer);
 scheme_object * Scheme_CreateRational(long long numerator, long long denominator);

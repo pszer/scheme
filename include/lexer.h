@@ -67,7 +67,7 @@ void   Lexer_SetError(char * str);
 int Lexer_NextToken(struct lexer * lex);
 int Lexer_GetCharType(char c);
 int Lexer_IsValidSymbolChar(char c);
-inline char Lexer_CurrChar(struct lexer * lex);
+char Lexer_CurrChar(struct lexer * lex);
 char Lexer_NextChar(struct lexer * lex);
 
 void Lexer_HandleWhitespaces(struct lexer * lex);
