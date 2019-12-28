@@ -199,8 +199,23 @@ int Lexer_AnalyseNumber(struct lexer * lex) {
 		return TOKEN_SYMBOL;
 	}
 
+	int type = NUMBER_INTEGER;
+	char * c;
+	for (c = buff.buffer; *c; ++c) {
+		if (*c == '.') {
+			type = NUMBER_DOUBLE;
+			break;
+		}
+	}
+
+	lex->number_type = type;
+
 	char * endptr, * lastchar;
-	lex->number = strtod(buff.buffer, &endptr);
+
+	if (type == NUMBER_DOUBLE)
+		lex->double_val   = strtod(buff.buffer, &endptr);
+	else
+		lex->integer_val = strtoll(buff.buffer, &endptr, 10);
 
 	lastchar = buff.buffer + buff.pos;
 

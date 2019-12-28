@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "object.h"
+
 /*
  * lexical analyser
  * takes in a scheme string/file and turns it into tokens
@@ -48,7 +50,12 @@ struct lexer {
 		     * string;
 	};
 
-	double number;
+	int number_type;
+	union {
+		long long integer_val;
+		struct { long long numerator, denominator; };
+		double double_val;
+	};
 
 	int curr_line, curr_char;
 };

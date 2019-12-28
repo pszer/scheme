@@ -19,8 +19,13 @@ void test_lexer(struct lexer * lex) {
 			Scheme_FreeObject(obj);
 			break;
 		case TOKEN_NUMBER:
-			obj = Scheme_CreateDouble(lex->number);
-			printf("%f ", Scheme_GetNumber(obj)->double_val);
+			if (lex->number_type == NUMBER_DOUBLE) {
+				obj = Scheme_CreateDouble(lex->double_val);
+				printf("%f ", Scheme_GetNumber(obj)->double_val);
+			} else if (lex->number_type == NUMBER_INTEGER) {
+				obj = Scheme_CreateInteger(lex->integer_val);
+				printf("%lli ", Scheme_GetNumber(obj)->integer_val);
+			}
 			Scheme_FreeObject(obj);
 			break;
 		default:
