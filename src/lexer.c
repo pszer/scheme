@@ -185,7 +185,10 @@ int Lexer_AnalyseNumber(struct lexer * lex) {
 	struct string_buffer buff;
 	InitStringBuffer(&buff, 8);
 
-	while (Lexer_GetCharType(Lexer_CurrChar(lex)) == CHAR_NUMBER) {
+	while (!isspace(Lexer_CurrChar(lex)) &&
+	       Lexer_CurrChar(lex) != '\0'   &&
+	       Lexer_GetCharType(Lexer_CurrChar(lex)) != CHAR_UNARY)
+	{
 		WriteStringBuffer(&buff, Lexer_CurrChar(lex));
 		Lexer_NextChar(lex);
 	}
@@ -196,8 +199,17 @@ int Lexer_AnalyseNumber(struct lexer * lex) {
 		return TOKEN_SYMBOL;
 	}
 
-	char * endptr;
+	char * endptr, * lastchar;
 	lex->number = strtod(buff.buffer, &endptr);
+
+	lastchar = buff.buffer + buff.pos;
+
+	if (lastchar != endptr) {
+		Lexer_SetError(__ERR_MSG__MALFORMED_NUMBER__);
+		FreeStringBuffer(&buff);
+		return TOKEN_EOF;
+	}
+
 	FreeStringBuffer(&buff);
 	return TOKEN_NUMBER;
 }

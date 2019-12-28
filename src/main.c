@@ -7,7 +7,6 @@ void test_lexer(struct lexer * lex) {
 	scheme_object * obj;
 
 	while ((token = Lexer_NextToken(lex)) != TOKEN_EOF) {
-		printf("booka\n");
 		switch (token) {
 		case TOKEN_STRING:
 			obj = Scheme_CreateString(lex->string);
@@ -16,17 +15,16 @@ void test_lexer(struct lexer * lex) {
 			break;
 		case TOKEN_SYMBOL:
 			obj = Scheme_CreateSymbol(lex->symbol);
-			printf("\"%s\" ", Scheme_GetSymbol(obj)->symbol);
+			printf("'%s ", Scheme_GetSymbol(obj)->symbol);
 			Scheme_FreeObject(obj);
 			break;
 		case TOKEN_NUMBER:
-			/*obj = Scheme_CreateDouble(lex->number);
+			obj = Scheme_CreateDouble(lex->number);
 			printf("%f ", Scheme_GetNumber(obj)->double_val);
-			Scheme_FreeObject(obj);*/
-			printf("%f ", lex->number);
+			Scheme_FreeObject(obj);
 			break;
 		default:
-			printf("'%c' ", (char)token);
+			printf("%c ", (char)token);
 			break;
 		}
 	}
@@ -39,10 +37,6 @@ void test_lexer(struct lexer * lex) {
 }
 
 int main( int argc, char ** argv ) {
-	scheme_object * obj;
-	obj = Scheme_CreateSymbol(malloc(5));
-	Scheme_FreeObject(obj);
-
 	struct lexer lex;
 	FILE * file = fopen("test.scm", "r");
 	if (!file) {

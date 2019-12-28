@@ -101,7 +101,7 @@ scheme_string * Scheme_GetString(scheme_object * obj) {
 }
 
 scheme_number * Scheme_GetNumber(scheme_object * obj) {
-	if (obj->type != SCHEME_PAIR) {
+	if (obj->type != SCHEME_NUMBER) {
 		Scheme_SetError("Attempting to access non-number object as a number");
 		return NULL;
 	}
@@ -110,7 +110,7 @@ scheme_number * Scheme_GetNumber(scheme_object * obj) {
 }
 
 scheme_symbol * Scheme_GetSymbol(scheme_object * obj) {
-	if (obj->type != SCHEME_PAIR) {
+	if (obj->type != SCHEME_SYMBOL) {
 		Scheme_SetError("Attempting to access non-symbol object as a symbol");
 		return NULL;
 	}
