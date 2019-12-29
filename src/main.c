@@ -66,13 +66,14 @@ int main(int argc, char ** argv) {
 		Scheme_FreeObject(obj);
 	} while (Lexer_CurrToken(&lex) != TOKEN_EOF);
 
-	scheme_object * a = Scheme_CreatePair(Scheme_CreateInteger(1), NULL);
-	scheme_object * b = Scheme_CreatePair(Scheme_CreateInteger(2), NULL);
-
-	Scheme_GetPair(a)->cdr = b;
-	Scheme_GetPair(b)->cdr = a;
-
-	Scheme_FreeObject(a);
+	Scheme_InitEnvironment();
+	Scheme_AddDefineEnvironmentLiteral("pi", Scheme_CreateDouble(3.14159265359));
+	Scheme_Display(Scheme_GetDefine(&environment, "pi"));
+	Scheme_Newline();
+	Scheme_AddDefineEnvironmentLiteral("pi", Scheme_CreateStringLiteral("dem gun mad"));
+	Scheme_Display(Scheme_GetDefine(&environment, "pi"));
+	Scheme_Newline();
+	Scheme_FreeEnvironment();
 	
 	fclose(file);
 	Lexer_Free(&lex);

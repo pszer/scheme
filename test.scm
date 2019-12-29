@@ -3,3 +3,5 @@
 
 (square (square 50))
 
+(define smiley ":~~))")
+
