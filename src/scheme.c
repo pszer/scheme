@@ -1,6 +1,12 @@
 #include "scheme.h"
 
 void Scheme_DisplayList(scheme_object * obj) {
+	if (!obj) return;
+	if (obj->type != SCHEME_PAIR) {
+		Scheme_Display(obj);
+		return;
+	}
+
 	Scheme_Display(Scheme_Car(obj));
 	scheme_object * cdr = Scheme_Cdr(obj);
 	if (cdr) {

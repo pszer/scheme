@@ -1,4 +1,5 @@
-(define (square n) (* n n))
+(define (square n)
+	(* n n))
 
 (square (square 50))
 

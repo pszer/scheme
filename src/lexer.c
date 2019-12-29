@@ -140,7 +140,7 @@ void Lexer_HandleWhitespaces(struct lexer * lex) {
 void Lexer_HandleComments(struct lexer * lex) {
 	if (Lexer_CurrChar(lex) == ';') {
 		while (1) {
-			if (Lexer_NextChar(lex) == '\0') {
+			if (Lexer_CurrChar(lex) == '\0') {
 				goto done;
 			} else if (Lexer_CurrChar(lex) == '\n') {
 				Lexer_NextChar(lex);
@@ -150,8 +150,10 @@ void Lexer_HandleComments(struct lexer * lex) {
 			}
 		}
 	}
+	return;
 done:
 	Lexer_HandleWhitespaces(lex);
+	Lexer_HandleComments(lex);
 }
 
 int Lexer_AnalyseString(struct lexer * lex) {

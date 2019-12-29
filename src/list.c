@@ -51,7 +51,7 @@ scheme_object * Scheme_ListFromArray(scheme_object ** array, int count) {
 
 	return base;
 }
-#include <stdio.h>
+
 scheme_object * Scheme_AppendList(scheme_object * list, scheme_object * obj) {
 	if (!list || list->type != SCHEME_PAIR) {
 		Scheme_SetError("attempt to append to non-pair object");

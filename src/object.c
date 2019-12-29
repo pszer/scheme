@@ -23,6 +23,9 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 	case SCHEME_STRING:
 		(*object)->payload = malloc(sizeof(scheme_string));
 		break;
+	case SCHEME_LAMBDA:
+		(*object)->payload = malloc(sizeof(scheme_lambda));
+		break;
 	default:
 		free(*object);
 		Scheme_SetError("invalid type given to Scheme_AllocateObject");
@@ -40,6 +43,40 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 	return 1;
 }
 
+struct scheme_freed_memory * Scheme_InitFreedMemory() {
+	struct scheme_freed_memory * mem = malloc(sizeof(struct scheme_freed_memory));
+	mem->size = SCHEME_FREED_MEMORY_START_SIZE;
+	mem->pos  = 0;
+
+	mem->objects = malloc(sizeof(scheme_object *) * mem->size);
+	return mem;
+}
+
+int Scheme_CheckIfFreed(struct scheme_freed_memory * mem, scheme_object * address) {
+	int i;
+	for (i = 0; i < mem->pos; ++i) {
+		if (mem->objects[i] == address) return 1;
+	}
+
+	return 0;
+}
+
+void Scheme_AddFreed(struct scheme_freed_memory * mem, scheme_object * address) {
+	if (mem->pos >= mem->size) {
+		mem->size *= 2;
+		mem->objects = realloc(mem->objects, mem->size * sizeof(scheme_object *));
+	}
+
+	mem->objects[mem->pos] = address;
+	++mem->pos;
+}
+
+void Scheme_FreeFreedMemory(struct scheme_freed_memory * mem) {
+	free(mem->objects);
+	free(mem);
+}
+
+struct scheme_freed_memory * freed_mem = NULL;
 void Scheme_FreeObject(scheme_object * object) {
 	if (object == NULL) return;
 
@@ -48,20 +85,41 @@ void Scheme_FreeObject(scheme_object * object) {
 	case SCHEME_NULL:
 		free(object);
 		return;
-	case SCHEME_PAIR:   freereturn(Scheme_FreePair);
+	case SCHEME_PAIR: 
+		freed_mem = Scheme_InitFreedMemory();
+		Scheme_AddFreed(freed_mem, object);
+		Scheme_FreePair(object->payload);
+		free(object);
+		Scheme_FreeFreedMemory(freed_mem);
+		return;
 	case SCHEME_NUMBER: freereturn(Scheme_FreeNumber);
 	case SCHEME_SYMBOL: freereturn(Scheme_FreeSymbol);
 	case SCHEME_STRING: freereturn(Scheme_FreeString);
+	case SCHEME_LAMBDA: freereturn(Scheme_FreeLambda);
 	default: return;
 	}
 	#undef freereturn
 }
 
+void Scheme_FreeObjectRecur(scheme_object * object) {
+	if (object == NULL) return;
+
+	if (object->type != SCHEME_PAIR) {
+		Scheme_FreeObject(object);
+	} else {
+		Scheme_FreePair(object->payload);
+		free(object);
+	}
+}
+
 void Scheme_FreePair(scheme_pair * pair) {
 	if (pair == NULL) return;
 
-	Scheme_FreeObject(pair->car);
-	Scheme_FreeObject(pair->cdr);
+	#define CHECK_FREE(address) if (!Scheme_CheckIfFreed(freed_mem, address)) {\
+                                        Scheme_AddFreed(freed_mem, address); \
+	                                Scheme_FreeObjectRecur(address);}
+	CHECK_FREE(pair->car);
+	CHECK_FREE(pair->cdr);
 	free(pair);
 }
 
@@ -80,6 +138,13 @@ void Scheme_FreeSymbol(scheme_symbol * symbol) {
 	if (symbol == NULL) return;
 	if (symbol->symbol) free(symbol->symbol);
 	free(symbol);
+}
+
+void Scheme_FreeLambda(scheme_lambda * lambda) {
+	if (lambda == NULL) return;
+	if (lambda->arg_ids) free(lambda->arg_ids);
+	if (lambda->body) free(lambda->body);
+	free(lambda);
 }
 
 scheme_pair * Scheme_GetPair(scheme_object * obj) {
@@ -116,6 +181,15 @@ scheme_symbol * Scheme_GetSymbol(scheme_object * obj) {
 	}
 
 	return (scheme_symbol *)obj->payload;
+}
+
+scheme_lambda * Scheme_GetLambda(scheme_object * obj) {
+	if (obj->type != SCHEME_LAMBDA) {
+		Scheme_SetError("Attempting to access non-lambda object as a lambda");
+		return NULL;
+	}
+
+	return (scheme_lambda *)obj->payload;
 }
 
 scheme_object * Scheme_CreateNull( void ) {
@@ -160,17 +234,24 @@ scheme_object * Scheme_CreateString(char * string_str) {
 	return obj;
 }
 
+char * Scheme_CopyStringHeap(const char * string) {
+	int len = strlen(string);
+	char * heapstr = malloc(sizeof(char) * (len + 1));
+	if (!heapstr) {
+		Scheme_SetError("Scheme_CopyStringHeap() error");
+	}
+
+	strcpy(heapstr, string);
+	return heapstr;
+}
+
 scheme_object * Scheme_CreateSymbolLiteral(const char * symbol_str) {
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_SYMBOL);
 	if (!code) return NULL;
 
-	int len = strlen(symbol_str);
-	char * str = malloc(len + 1);
-	strcpy(str, symbol_str);
-
 	scheme_symbol * symbol = Scheme_GetSymbol(obj);
-	symbol->symbol = str;
+	symbol->symbol = Scheme_CopyStringHeap(symbol_str);
 
 	return obj;
 
@@ -181,12 +262,8 @@ scheme_object * Scheme_CreateStringLiteral(const char * string_str) {
 	int code = Scheme_AllocateObject(&obj, SCHEME_STRING);
 	if (!code) return NULL;
 
-	int len = strlen(string_str);
-	char * str = malloc(len + 1);
-	strcpy(str, string_str);
-
 	scheme_string * string = Scheme_GetString(obj);
-	string->string = str;
+	string->string = Scheme_CopyStringHeap(string_str);
 
 	return obj;
 }
@@ -229,4 +306,10 @@ scheme_object * Scheme_CreateRational(long long numerator,
 
 	return obj;
 
+}
+
+scheme_object * Scheme_CreateLambda(int acount, scheme_symbol * args, scheme_object * body) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_LAMBDA);
+	if (!code) return NULL;
 }
