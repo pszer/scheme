@@ -23,6 +23,38 @@ void __Math_Complement__(scheme_number * left, scheme_number * right) {
 			__RationalToDouble__(left);
 		}
 	}
+
+	if (ltype == NUMBER_RATIONAL)
+		if (rtype == NUMBER_INTEGER)
+			__IntToRational__(right);	
+	if (rtype == NUMBER_RATIONAL)
+		if (ltype == NUMBER_INTEGER)
+			__IntToRational__(left);	
+}
+
+long long gcd(long long a, long long b) {
+	if (b > a) gcd(b, a);
+	while (b) {
+		long long t = b;
+		b = a % b;
+		a = t;
+	}
+	return a;
+}
+
+#include <stdio.h>
+void __NormaliseRational__(scheme_number * num) {
+	if (num->type != NUMBER_RATIONAL) return;
+	long long divisor = gcd(num->numerator, num->denominator);
+
+	if (divisor == num->denominator) {
+		long long integer = num->numerator / divisor;
+		num->type = NUMBER_INTEGER;
+		num->integer_val = integer;
+	} else {
+		num->numerator /= divisor;
+		num->denominator /= divisor;
+	}
 }
 
 void __IntToRational__(scheme_number * num) {
@@ -79,11 +111,20 @@ scheme_object * __Scheme_Add__(scheme_number * nums, int count) {
 		case NUMBER_DOUBLE:
 			r_num->double_val += to_add->double_val;
 			break;
+		case NUMBER_RATIONAL: {
+			long long topleft  = r_num->numerator * to_add->denominator;
+			long long topright = to_add->numerator * r_num->denominator;
+			long long new_denom = to_add->denominator * r_num->denominator;
+			r_num->numerator = topleft + topright;
+			r_num->denominator = new_denom;
+			break; }
 		}
 
 		++i;
 	}
 
+	if (r_num->type == NUMBER_RATIONAL)
+		__NormaliseRational__(r_num);
 	return result;
 }
 
@@ -106,11 +147,20 @@ scheme_object * __Scheme_Sub__(scheme_number * nums, int count) {
 		case NUMBER_DOUBLE:
 			r_num->double_val -= to_add->double_val;
 			break;
+		case NUMBER_RATIONAL: {
+			long long topleft  = r_num->numerator * to_add->denominator;
+			long long topright = to_add->numerator * r_num->denominator;
+			long long new_denom = to_add->denominator * r_num->denominator;
+			r_num->numerator = topleft - topright;
+			r_num->denominator = new_denom;
+			break; }
 		}
 
 		++i;
 	}
 
+	if (r_num->type == NUMBER_RATIONAL)
+		__NormaliseRational__(r_num);
 	return result;
 }
 
@@ -133,11 +183,17 @@ scheme_object * __Scheme_Mul__(scheme_number * nums, int count) {
 		case NUMBER_DOUBLE:
 			r_num->double_val *= to_add->double_val;
 			break;
+		case NUMBER_RATIONAL:
+			r_num->numerator *= to_add->numerator;
+			r_num->denominator *= to_add->denominator;
+			break;
 		}
 
 		++i;
 	}
 
+	if (r_num->type == NUMBER_RATIONAL)
+		__NormaliseRational__(r_num);
 	return result;
 }
 
@@ -154,16 +210,25 @@ scheme_object * __Scheme_Div__(scheme_number * nums, int count) {
 		__Math_Complement__(r_num, to_add);
 
 		switch (r_num->type) {
-		case NUMBER_INTEGER:
-			r_num->integer_val /= to_add->integer_val;
-			break;
+		case NUMBER_INTEGER: {
+			long long numer = r_num->integer_val;
+			r_num->type = NUMBER_RATIONAL;
+			r_num->numerator = numer;
+			r_num->denominator = to_add->integer_val;
+			break; }
 		case NUMBER_DOUBLE:
 			r_num->double_val /= to_add->double_val;
+			break;
+		case NUMBER_RATIONAL:
+			r_num->numerator *= to_add->denominator;
+			r_num->denominator *= to_add->numerator;
 			break;
 		}
 
 		++i;
 	}
 
+	if (r_num->type == NUMBER_RATIONAL)
+		__NormaliseRational__(r_num);
 	return result;
 }
