@@ -41,21 +41,24 @@ void __RationalToDouble__(scheme_number * num) {
 	num->double_val = num->numerator / (double)num->denominator;
 }
 
-scheme_object * __Scheme_CallAdd__(scheme_object ** objs, size_t count) {
-	scheme_number nums[count];
+#define __CALL_ARITHMETIC(callname, func) \
+scheme_object * callname(scheme_object ** objs, size_t count) { \
+	scheme_number nums[count]; \
+	size_t i; \
+	for (i = 0; i < count; ++i) { \
+		if (objs[i]->type != SCHEME_NUMBER) { \
+			Scheme_SetError("+ expects only number arguments"); \
+			return NULL; \
+		} \
+		nums[i] = *Scheme_GetNumber(objs[i]); \
+	} \
+	return func(nums, count); \
+} 
 
-	size_t i;
-	for (i = 0; i < count; ++i) {
-		if (objs[i]->type != SCHEME_NUMBER) {
-			Scheme_SetError("+ expects only number arguments");
-			return NULL;
-		}
-
-		nums[i] = *Scheme_GetNumber(objs[i]);
-	}
-
-	return __Scheme_Add__(nums, count);
-}
+__CALL_ARITHMETIC(__Scheme_CallAdd__, __Scheme_Add__);
+__CALL_ARITHMETIC(__Scheme_CallSub__, __Scheme_Sub__);
+__CALL_ARITHMETIC(__Scheme_CallMul__, __Scheme_Mul__);
+__CALL_ARITHMETIC(__Scheme_CallDiv__, __Scheme_Div__);
 
 scheme_object * __Scheme_Add__(scheme_number * nums, int count) {
 	scheme_object * result;
@@ -75,6 +78,87 @@ scheme_object * __Scheme_Add__(scheme_number * nums, int count) {
 			break;
 		case NUMBER_DOUBLE:
 			r_num->double_val += to_add->double_val;
+			break;
+		}
+
+		++i;
+	}
+
+	return result;
+}
+
+scheme_object * __Scheme_Sub__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_NUMBER);
+
+	scheme_number * r_num = Scheme_GetNumber(result);
+	*r_num = *nums;
+
+	int i = 1;
+	while (i != count) {
+		scheme_number * to_add = nums + i;
+		__Math_Complement__(r_num, to_add);
+
+		switch (r_num->type) {
+		case NUMBER_INTEGER:
+			r_num->integer_val -= to_add->integer_val;
+			break;
+		case NUMBER_DOUBLE:
+			r_num->double_val -= to_add->double_val;
+			break;
+		}
+
+		++i;
+	}
+
+	return result;
+}
+
+scheme_object * __Scheme_Mul__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_NUMBER);
+
+	scheme_number * r_num = Scheme_GetNumber(result);
+	*r_num = *nums;
+
+	int i = 1;
+	while (i != count) {
+		scheme_number * to_add = nums + i;
+		__Math_Complement__(r_num, to_add);
+
+		switch (r_num->type) {
+		case NUMBER_INTEGER:
+			r_num->integer_val *= to_add->integer_val;
+			break;
+		case NUMBER_DOUBLE:
+			r_num->double_val *= to_add->double_val;
+			break;
+		}
+
+		++i;
+	}
+
+	return result;
+}
+
+scheme_object * __Scheme_Div__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_NUMBER);
+
+	scheme_number * r_num = Scheme_GetNumber(result);
+	*r_num = *nums;
+
+	int i = 1;
+	while (i != count) {
+		scheme_number * to_add = nums + i;
+		__Math_Complement__(r_num, to_add);
+
+		switch (r_num->type) {
+		case NUMBER_INTEGER:
+			r_num->integer_val /= to_add->integer_val;
+			break;
+		case NUMBER_DOUBLE:
+			r_num->double_val /= to_add->double_val;
 			break;
 		}
 

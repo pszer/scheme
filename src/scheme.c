@@ -12,6 +12,9 @@ void Scheme_DefineStartupEnv( void ) {
 	USER_INITIAL_ENVIRONMENT = Scheme_CreateEnv(&SYSTEM_GLOBAL_ENVIRONMENT, 128);
 
 	CREATESYSDEF(__Scheme_CallAdd__, "+", 1, 1);
+	CREATESYSDEF(__Scheme_CallSub__, "-", 1, 1);
+	CREATESYSDEF(__Scheme_CallMul__, "*", 1, 1);
+	CREATESYSDEF(__Scheme_CallDiv__, "/", 1, 1);
 }
 
 void Scheme_FreeStartupEnv( void ) {
