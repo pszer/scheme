@@ -8,6 +8,29 @@ int Scheme_IsNull(scheme_object * obj) {
 	return obj && obj->type == SCHEME_NULL;
 }
 
+int Scheme_ListLength(scheme_object * obj) {
+	scheme_object * node = obj;
+
+	if (!obj) {
+		Scheme_SetError("ListLength() on NULL");
+		return 0;
+	}
+
+	int count = 1;
+	while (1) {
+		if (node->type != SCHEME_PAIR) {
+			Scheme_SetError("ListLength() on non-list");
+			return 0;
+		}
+
+		scheme_pair * p = Scheme_GetPair(node);
+		if (p->cdr == NULL || p->cdr->type == SCHEME_NULL)
+			return count;
+		node = p->cdr;
+		++count;
+	}
+}
+
 #define TEST_NULL(obj, fail) if(obj==NULL){Scheme_SetError("operation on null object");return fail;}
 scheme_object * Scheme_Car(scheme_object * obj) {
 	TEST_NULL(obj, NULL);

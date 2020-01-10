@@ -43,6 +43,8 @@ void test_lexer(struct lexer * lex) {
 	}
 }
 
+#include <stdlib.h>
+
 int main(int argc, char ** argv) {
 	struct lexer lex;
 	FILE * file = fopen("test.scm", "r");
@@ -56,24 +58,21 @@ int main(int argc, char ** argv) {
 		return 0;
 	}
 
+	Scheme_DefineStartupEnv();
+
 	//test_lexer(&lex);
 	do {
 		scheme_object * obj = Parser_Parse(&lex);
-		Scheme_Display(obj);
+		if (!obj) break;
+
+		Scheme_Display(Scheme_Eval(obj, &USER_INITIAL_ENVIRONMENT));
 		printf("\n");
 		scheme_object * car, * cdr, * base = obj;
 
 		Scheme_FreeObject(obj);
 	} while (Lexer_CurrToken(&lex) != TOKEN_EOF);
 
-	Scheme_InitEnvironment();
-	Scheme_AddDefineEnvironmentLiteral("pi", Scheme_CreateDouble(3.14159265359));
-	Scheme_Display(Scheme_GetDefine(&environment, "pi"));
-	Scheme_Newline();
-	Scheme_AddDefineEnvironmentLiteral("pi", Scheme_CreateStringLiteral("dem gun mad"));
-	Scheme_Display(Scheme_GetDefine(&environment, "pi"));
-	Scheme_Newline();
-	Scheme_FreeEnvironment();
+	Scheme_FreeStartupEnv();
 	
 	fclose(file);
 	Lexer_Free(&lex);

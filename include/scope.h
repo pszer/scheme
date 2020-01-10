@@ -1,48 +1,49 @@
 #pragma once
 
+#include <string.h>
+
+typedef struct scheme_env scheme_env;
+
 #include "object.h"
 
-#define ENVIRONMENT_SIZE 2048
 #define SCOPE_SIZE 8
 
-typedef struct define {
-	char * string;
+typedef struct scheme_define {
+	char * name;
 	scheme_object * object;
-} define;
+} scheme_define;
 
-define * Scheme_CreateDefine(char * string, scheme_object * obj);
-define * Scheme_CreateDefineLiteral(const char * string, scheme_object * obj);
-void Scheme_FreeDefine(define * def);
+scheme_define Scheme_CreateDefine(char * string, scheme_object * obj);
+scheme_define Scheme_CreateDefineLiteral(const char * string, scheme_object * obj);
+void Scheme_FreeDefine(scheme_define * scheme_def);
+void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj);
 
-typedef struct def_list def_list;
-struct def_list {
-	define * def;
-	def_list * next;	
+// lexigraphically compares two strings 'a' and 'b'
+// returns
+// -1 if a < b
+//  0 if a = b
+// +1 if a > b
+char LexigraphicCompare(const char * a, const char * b);
+
+// definitions in a scheme_environment are sorted lexigraphically
+
+struct scheme_env {
+	int size, count;
+	scheme_define * defs;
+
+	// pointer to parent env
+	scheme_env * parent;
 };
 
-def_list * Scheme_CreateDefList(char * string, scheme_object * obj);
-def_list * Scheme_CreateDefListLiteral(const char * string, scheme_object * obj);
-def_list * Scheme_CreateDefListFromDefine(define * def);
-void Scheme_FreeDefList(def_list * list);
-void Scheme_AppendDefList(def_list * list, define * def);
-scheme_object * Scheme_FindDefList(def_list * list, const char * string);
+typedef struct scheme_env_obj {
+	scheme_env env;
+} scheme_env_obj;
 
-typedef struct scope {
-	int size;
-	def_list ** defines;
-} scope;
-extern scope environment;
+scheme_env Scheme_CreateEnv(scheme_env * parent, int init_size);
+void Scheme_FreeEnv(scheme_env * env);
+void Scheme_ResizeEnv(scheme_env * env, int new_size);
 
-scope * Scheme_CreateScope(int size);
-void    Scheme_FreeScope(scope * s);
+void Scheme_DefineEnv(scheme_env * env, scheme_define def);
+scheme_define * Scheme_GetEnv(scheme_env * env, char * name);
 
-void Scheme_AddDefine(scope * s, char * string, scheme_object * obj);
-void Scheme_AddDefineEnvironment(char * string, scheme_object * obj);
-void Scheme_AddDefineEnvironmentLiteral(const char * string, scheme_object * obj);
-
-scheme_object * Scheme_GetDefine(scope * s, const char * string);
-
-void Scheme_InitEnvironment();
-void Scheme_FreeEnvironment();
-
-int Scheme_HashFunction(const char * string);
+void Scheme_DisplayEnv(scheme_env * env);

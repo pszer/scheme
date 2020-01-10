@@ -1,142 +1,151 @@
 #include "scope.h"
+#include "scheme.h"
 
-scope environment;
-
-define * Scheme_CreateDefine(char * string, scheme_object * obj) {
-	define * def = malloc(sizeof(define));
-	def->string = string;
-	def->object = obj;
+scheme_define Scheme_CreateDefine(char * string, scheme_object * obj) {
+	scheme_define def;
+	def.name = string;
+	def.object = obj;
 	return def;
 }
 
-define * Scheme_CreateDefineLiteral(const char * string, scheme_object * obj) {
-	return Scheme_CreateDefine(Scheme_CopyStringHeap(string), obj);
+scheme_define Scheme_CreateDefineLiteral(const char * string, scheme_object * obj) {
+	return Scheme_CreateDefine(strdup(string), obj);
 }
 
-void Scheme_FreeDefine(define * def) {
+void Scheme_FreeDefine(scheme_define * def) {
 	if (!def) return;
-	if (def->string) free(def->string);
+	if (def->name) free(def->name);
 	Scheme_FreeObject(def->object);
 }
 
-def_list * Scheme_CreateDefList(char * string, scheme_object * obj) {
-	def_list * node = malloc(sizeof(def_list));
-	node->def = Scheme_CreateDefine(string, obj);
-	node->next = NULL;
-	return node;
+void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj) {
+	if (def->object) Scheme_FreeObject(def->object);
+	def->object = obj;
 }
 
-def_list * Scheme_CreateDefListLiteral(const char * string, scheme_object * obj) {
-	return Scheme_CreateDefList(Scheme_CopyStringHeap(string), obj);
+char LexigraphicCompare(const char * a, const char * b) {
+	const char * c = a, * d = b;
+	while (1) {
+		if (!*c &&  *d) return -1; // ab  < abc
+		if ( *c && !*d) return  1; // abc > ab
+		if (!*c && !*d) return  0; // abc = abc
+
+		if (*c < *d) return -1; // a < b
+		if (*c > *d) return  1; // b > a
+
+		// *c==*d if no checks above happened
+
+		// check next character
+		++c;
+		++d;
+	};
 }
 
-def_list * Scheme_CreateDefListFromDefine(define * def) {
-	def_list * node = malloc(sizeof(def_list));
-	node->def = def;
-	node->next = NULL;
-	return node;
+scheme_env Scheme_CreateEnv(scheme_env * parent, int init_size) {
+	scheme_env env;
+	env.parent = parent;
+
+	env.defs = NULL;
+	Scheme_ResizeEnv(&env, init_size);
+	env.count = 0;
+
+	return env;
 }
 
-void Scheme_FreeDefList(def_list * list) {
-	if (!list) return;
-	if (list->def) {
-		Scheme_FreeDefine(list->def);
-		free(list->def);
-	}
-	if (list->next) Scheme_FreeDefList(list->next);
-	free(list);
-}
-
-void Scheme_AppendDefList(def_list * list, define * def) {
-	if (strcmp(list->def->string, def->string) == 0) {
-		Scheme_FreeDefine(list->def);
-		list->def = def;
-	} else if (list->next) {
-		Scheme_AppendDefList(list->next, def);
-	} else {
-		list->next = Scheme_CreateDefListFromDefine(def);
-	}
-}
-
-scheme_object * Scheme_FindDefList(def_list * list, const char * string) {
-	if (list == NULL)
-		return NULL;
-	if (strcmp(string, list->def->string) == 0)
-		return list->def->object;
-	else 
-		Scheme_FindDefList(list->next, string);
-}
-
-scope * Scheme_CreateScope(int size) {
-	scope * s = malloc(sizeof(scope));
-	s->size = size;
-	s->defines = malloc(size * sizeof(def_list *));
-}
-
-void Scheme_FreeScope(scope * s) {
-	if (!s) return;
-
-	int i;
-	for (i = 0; i < s->size; ++i) {
-		if (s->defines[i])
-			Scheme_FreeDefList(s->defines[i]);
-	}
-
-	free(s->defines);
-	free(s);
-}
-
-void Scheme_AddDefine(scope * s, char * string, scheme_object * obj) {
-	int index = Scheme_HashFunction(string) % s->size;
-	if (s->defines[index])
-		Scheme_AppendDefList(s->defines[index], Scheme_CreateDefine(string, obj));
-	else
-		s->defines[index] = Scheme_CreateDefList(string, obj);
-}
-
-void Scheme_AddDefineEnvironment(char * string, scheme_object * obj) {
-	Scheme_AddDefine(&environment, string, obj);
-}
-
-void Scheme_AddDefineEnvironmentLiteral(const char * string, scheme_object * obj) {
-	Scheme_AddDefineEnvironment(Scheme_CopyStringHeap(string), obj);
-}
-
-void Scheme_InitEnvironment() {
-	environment.size = ENVIRONMENT_SIZE;
-	environment.defines = malloc(environment.size * sizeof(def_list *));
-
-	int i;
-	for (i = 0; i < environment.size; ++i) {
-		environment.defines[i] = NULL;
+void Scheme_FreeEnv(scheme_env * env) {
+	if (env->defs) {
+		size_t i;
+		for (i = 0; i < env->count; ++i) {
+			Scheme_FreeDefine(env->defs + i);
+		}
+		free(env->defs);
 	}
 }
 
-void Scheme_FreeEnvironment() {
-	if (environment.defines) {
-		int i;
-		for (i = 0; i < environment.size; ++i) {
-			if (environment.defines[i]) {
-				Scheme_FreeDefList(environment.defines[i]);
+void Scheme_ResizeEnv(scheme_env * env, int new_size) {
+	env->defs = realloc(env->defs, new_size * sizeof(scheme_define));
+	env->size = new_size;
+}
+
+void Scheme_DefineEnv(scheme_env * env, scheme_define def) {
+	// expand size if necessary
+	if (env->count + 1 == env->size)
+		Scheme_ResizeEnv(env, env->size * 2);
+
+	scheme_define * defs = env->defs;
+
+	if (env->count == 0) {
+		defs[0] = def;
+		++env->count;
+		return;
+	}
+
+	scheme_define * l = defs,
+	              * r = defs + env->count;
+	while (1) {
+		if (r == l) {
+			// move every entry >= l up 1 spot to make
+			// room for new definition
+			scheme_define * move, * end = defs + env->count;
+			for (move = end-1; move >= l; --move) {
+				move[1] = move[0];
 			}
+
+			*l = def;
+			goto done;
 		}
 
-		free(environment.defines);
+		scheme_define * m = l + (r-l)/2;
+
+		int comp = LexigraphicCompare(m->name, def.name);
+		if (comp == 0) {
+			Scheme_OverwriteDefine(m, def.object);
+			free(def.name);
+			return;
+		} else if (comp == -1) {
+			l = m + 1;
+		} else {
+			r = m;
+		}
+	}
+
+done:
+	++env->count;
+}
+
+scheme_define * Scheme_GetEnv(scheme_env * env, char * name) {
+	if (!env) return NULL;
+
+	scheme_define * defs = env->defs;
+	scheme_define * l = defs,
+	              * r = defs + env->count;
+	while (1) {
+		if (r == l) {
+			return Scheme_GetEnv(env->parent, name);
+		}
+
+		scheme_define * m = l + (r-l)/2;
+
+		int comp = LexigraphicCompare(m->name, name);
+		if (comp == 0) {
+			return m;
+		} else if (comp == -1) {
+			l = m + 1;
+		} else {
+			r = m;
+		}
 	}
 }
 
-scheme_object * Scheme_GetDefine(scope * s, const char * string) {
-	int index = Scheme_HashFunction(string);
-	return Scheme_FindDefList(s->defines[index], string);
-}
-
-int Scheme_HashFunction(const char * string) {
-	int result = 57;
-	const char * c;
-	for (c = string; *c; ++c) {
-		result <<= 1 + (*c%2);
-		result += *c;
+#include <stdio.h>
+void Scheme_DisplayEnv(scheme_env * env) {
+	int i;
+	printf("{ ");
+	for (i = 0; i < env->count; ++i) {
+		scheme_define * def = env->defs + i;
+		Scheme_Display(def->object);
+		if (i != env->count-1) putchar(',');
+		putchar(' ');
 	}
-
-	return result;
+	printf("}\n");
 }

@@ -1,7 +1,3 @@
-(define (square n)
-	(* n n))
-
-(square (square 50))
-
-(define smiley ":~~))")
+(+ 5 10)
+(+ 50 10)
 

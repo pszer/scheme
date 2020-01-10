@@ -9,6 +9,8 @@
 int Scheme_IsPair(scheme_object * obj);
 int Scheme_IsNull(scheme_object * obj);
 
+int Scheme_ListLength(scheme_object * obj);
+
 scheme_object * Scheme_Car(scheme_object * obj);
 scheme_object * Scheme_Cdr(scheme_object * obj);
 

@@ -26,6 +26,11 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 	case SCHEME_LAMBDA:
 		(*object)->payload = malloc(sizeof(scheme_lambda));
 		break;
+	case SCHEME_ENV:
+		(*object)->payload = malloc(sizeof(scheme_env_obj));
+	case SCHEME_CFUNC:
+		(*object)->payload = malloc(sizeof(scheme_cfunc));
+		break;
 	default:
 		free(*object);
 		Scheme_SetError("invalid type given to Scheme_AllocateObject");
@@ -39,8 +44,19 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 	}
 
 	(*object)->type = type;
-
+	(*object)->ref_count = 1;
 	return 1;
+}
+
+void Scheme_ReferenceObject(scheme_object ** pointer, scheme_object * object) {
+	*pointer = object;
+	if (object) ++object->ref_count;
+}
+
+void Scheme_DereferenceObject(scheme_object ** pointer) {
+	if (*pointer)
+		(*pointer)->ref_count -= 1;
+	*pointer = NULL;
 }
 
 struct scheme_freed_memory * Scheme_InitFreedMemory() {
@@ -79,6 +95,7 @@ void Scheme_FreeFreedMemory(struct scheme_freed_memory * mem) {
 struct scheme_freed_memory * freed_mem = NULL;
 void Scheme_FreeObject(scheme_object * object) {
 	if (object == NULL) return;
+	if (object->ref_count > 1) return;
 
 	#define freereturn(p) {p(object->payload);free(object);return;}
 	switch (object->type) {
@@ -147,6 +164,16 @@ void Scheme_FreeLambda(scheme_lambda * lambda) {
 	free(lambda);
 }
 
+void Scheme_FreeEnvObj(scheme_env_obj * env) {
+	if (env == NULL) return;
+	Scheme_FreeEnv(&env->env);
+	free(env);
+}
+
+void Scheme_FreeCFunc(scheme_cfunc * cfunc) {
+	if (cfunc) free(cfunc);
+}
+
 scheme_pair * Scheme_GetPair(scheme_object * obj) {
 	if (obj->type != SCHEME_PAIR) {
 		Scheme_SetError("Attempting to access non-pair object as a pair");
@@ -192,6 +219,24 @@ scheme_lambda * Scheme_GetLambda(scheme_object * obj) {
 	return (scheme_lambda *)obj->payload;
 }
 
+scheme_env_obj * Scheme_GetEnvObj(scheme_object * obj) {
+	if (obj->type != SCHEME_ENV) {
+		Scheme_SetError("Attempting to access non-environment object as a environment");
+		return NULL;
+	}
+
+	return (scheme_env_obj *)obj->payload;
+}
+
+scheme_cfunc * Scheme_GetCFunc (scheme_object * obj) {
+	if (obj->type != SCHEME_CFUNC) {
+		Scheme_SetError("Attempting to access cfunc object as a cfunc");
+		return NULL;
+	}
+
+	return (scheme_cfunc *)obj->payload;
+}
+
 scheme_object * Scheme_CreateNull( void ) {
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_NULL);
@@ -234,24 +279,13 @@ scheme_object * Scheme_CreateString(char * string_str) {
 	return obj;
 }
 
-char * Scheme_CopyStringHeap(const char * string) {
-	int len = strlen(string);
-	char * heapstr = malloc(sizeof(char) * (len + 1));
-	if (!heapstr) {
-		Scheme_SetError("Scheme_CopyStringHeap() error");
-	}
-
-	strcpy(heapstr, string);
-	return heapstr;
-}
-
 scheme_object * Scheme_CreateSymbolLiteral(const char * symbol_str) {
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_SYMBOL);
 	if (!code) return NULL;
 
 	scheme_symbol * symbol = Scheme_GetSymbol(obj);
-	symbol->symbol = Scheme_CopyStringHeap(symbol_str);
+	symbol->symbol = strdup(symbol_str);
 
 	return obj;
 
@@ -263,7 +297,7 @@ scheme_object * Scheme_CreateStringLiteral(const char * string_str) {
 	if (!code) return NULL;
 
 	scheme_string * string = Scheme_GetString(obj);
-	string->string = Scheme_CopyStringHeap(string_str);
+	string->string = strdup(string_str);
 
 	return obj;
 }
@@ -308,8 +342,32 @@ scheme_object * Scheme_CreateRational(long long numerator,
 
 }
 
-scheme_object * Scheme_CreateLambda(int acount, scheme_symbol * args, scheme_object * body) {
+scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, scheme_object * body,
+	scheme_env* closure)
+{
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_LAMBDA);
 	if (!code) return NULL;
+
+	scheme_lambda * l = Scheme_GetLambda(obj);
+	l->arg_count = argc;
+	l->dot_args = dot_args;
+	l->arg_ids = args;
+	l->body = body;
+	l->closure = closure;
+
+	return obj;
+}
+
+scheme_object * Scheme_CreateCFunc(int argc, char dot_args, scheme_object* (*func)(scheme_object**,size_t)) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_CFUNC);
+	if (!code) return NULL;
+
+	scheme_cfunc * c = Scheme_GetCFunc(obj);
+	c->arg_count = argc;
+	c->dot_args = dot_args;
+	c->func = func;
+
+	return obj;
 }
