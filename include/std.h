@@ -2,6 +2,8 @@
 
 #include "object.h"
 
+scheme_object * __Exit__(scheme_object ** objs, size_t count);
+
 void __Math_Complement__(scheme_number * left, scheme_number * right);
 
 long long gcd(long long a, long long b);

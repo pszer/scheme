@@ -3,6 +3,7 @@
 
 scheme_env SYSTEM_GLOBAL_ENVIRONMENT;
 scheme_env USER_INITIAL_ENVIRONMENT;
+int SCHEME_INTERPRETER_HALT = 0;
 
 #define CREATESYSDEF(func, name, argc, dotargs) \
 	Scheme_DefineEnv(&SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
@@ -15,6 +16,7 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESYSDEF(__Scheme_CallSub__, "-", 1, 1);
 	CREATESYSDEF(__Scheme_CallMul__, "*", 1, 1);
 	CREATESYSDEF(__Scheme_CallDiv__, "/", 1, 1);
+	CREATESYSDEF(__Exit__, "exit", 0, 0);
 }
 
 void Scheme_FreeStartupEnv( void ) {
@@ -34,7 +36,10 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
 
 		pair = Scheme_GetPair(obj);
 
-		length = Scheme_ListLength(pair->cdr);
+		if (!pair->cdr)
+			length=0;
+		else
+			length = Scheme_ListLength(pair->cdr);
 
 		array = malloc(length * sizeof(scheme_object *));
 		node = pair->cdr;
@@ -44,9 +49,17 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
 			node = p->cdr;
 		}
 
-		apply_result = Scheme_Apply(Scheme_Eval(pair->car, env), array, length);
+		scheme_object * application = Scheme_Eval(pair->car, env);
+		if (!application) return NULL;
+
+		apply_result = Scheme_Apply(application, array, length);
+
+		Scheme_DereferenceObject(&application);
+		for (i = 0; i < length; ++i) {
+			Scheme_DereferenceObject(array + i);
+		}
+
 		free(array);
-		if (error_str) return NULL;
 		return apply_result;
 		break; }
 	case SCHEME_SYMBOL: {
@@ -62,8 +75,10 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
 
 		return Scheme_Eval(def->object, env);
 		}
-	default:
-		return obj;
+	default: {
+		scheme_object * ref;
+		Scheme_ReferenceObject(&ref, obj);
+		return ref; }
 	}
 }
 

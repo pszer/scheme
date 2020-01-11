@@ -16,7 +16,7 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 OUTPUT = scheme
 
 $(ODIR)/%.o: $(SDIR)/%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -g -c -o $@ $<
 		
 debug: $(OBJ)
 	$(CC) -g -o $(OUTPUT) $^ $(CFLAGS) $(LIBS)

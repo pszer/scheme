@@ -1,4 +1,5 @@
 #include "object.h"
+#include "scheme.h"
 
 int Scheme_AllocateObject(scheme_object ** object, int type) {
 	*object = malloc(sizeof(scheme_object));
@@ -54,9 +55,17 @@ void Scheme_ReferenceObject(scheme_object ** pointer, scheme_object * object) {
 }
 
 void Scheme_DereferenceObject(scheme_object ** pointer) {
-	if (*pointer)
+	if (!pointer) return;
+
+	if (*pointer) {
+		Scheme_Display(*pointer);
+		printf(" ref count : %i\n", (*pointer)->ref_count);
 		(*pointer)->ref_count -= 1;
-	*pointer = NULL;
+		if ((*pointer)->ref_count <= 0) {
+			Scheme_FreeObject(*pointer);
+		}
+		*pointer = NULL;
+	}
 }
 
 struct scheme_freed_memory * Scheme_InitFreedMemory() {
@@ -95,7 +104,8 @@ void Scheme_FreeFreedMemory(struct scheme_freed_memory * mem) {
 struct scheme_freed_memory * freed_mem = NULL;
 void Scheme_FreeObject(scheme_object * object) {
 	if (object == NULL) return;
-	if (object->ref_count > 1) return;
+	Scheme_Display(object);
+	printf(" got freed!\n");
 
 	#define freereturn(p) {p(object->payload);free(object);return;}
 	switch (object->type) {
@@ -113,6 +123,7 @@ void Scheme_FreeObject(scheme_object * object) {
 	case SCHEME_SYMBOL: freereturn(Scheme_FreeSymbol);
 	case SCHEME_STRING: freereturn(Scheme_FreeString);
 	case SCHEME_LAMBDA: freereturn(Scheme_FreeLambda);
+	case SCHEME_CFUNC : freereturn(Scheme_FreeCFunc);
 	default: return;
 	}
 	#undef freereturn
@@ -122,7 +133,7 @@ void Scheme_FreeObjectRecur(scheme_object * object) {
 	if (object == NULL) return;
 
 	if (object->type != SCHEME_PAIR) {
-		Scheme_FreeObject(object);
+		Scheme_DereferenceObject(&object);
 	} else {
 		Scheme_FreePair(object->payload);
 		free(object);

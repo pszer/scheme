@@ -42,8 +42,17 @@ int  InitStringBuffer (struct string_buffer * buffer, int size);
 void FreeStringBuffer (struct string_buffer * buffer);
 void WriteStringBuffer(struct string_buffer * buffer, char c);
 
+enum {
+	LEXER_STRING,
+	LEXER_STREAM
+};
+
 struct lexer {
+	int mode;
 	char * buffer, * pos;
+
+	FILE * stream;
+	int last_char;
 
 	union {
 		char * symbol,
@@ -62,8 +71,9 @@ struct lexer {
 };
 
 // 1 for success, 0 for error
-int Lexer_LoadFromString(struct lexer * lex, const char * string);
+int Lexer_LoadFromString(struct lexer * lex, char * string);
 int Lexer_LoadFromFile(struct lexer * lex, FILE * file);
+int Lexer_LoadFromStream(struct lexer * lex, FILE * stream);
 
 // if there has been an error Lexer_GetError()
 // will point to an error message string, otherwise
@@ -74,10 +84,10 @@ void   Lexer_SetError(char * str);
 
 int Lexer_NextToken(struct lexer * lex);
 int Lexer_CurrToken(struct lexer * lex);
-int Lexer_GetCharType(char c);
+int Lexer_GetCharType(int c);
 int Lexer_IsValidSymbolChar(char c);
-char Lexer_CurrChar(struct lexer * lex);
-char Lexer_NextChar(struct lexer * lex);
+int Lexer_CurrChar(struct lexer * lex);
+int Lexer_NextChar(struct lexer * lex);
 
 void Lexer_HandleWhitespaces(struct lexer * lex);
 void Lexer_HandleComments(struct lexer * lex);

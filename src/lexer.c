@@ -42,13 +42,10 @@ void WriteStringBuffer(struct string_buffer * buffer, char c) {
 	buffer->buffer[buffer->pos] = '\0';
 }
 
-int Lexer_LoadFromString(struct lexer * lex, const char * string) {
-	int size = strlen(string);
-	
-	lex->buffer = malloc(sizeof(char) * (size + 1));
-	if (!lex->buffer) return 0;
+int Lexer_LoadFromString(struct lexer * lex, char * string) {
+	lex->mode = LEXER_STRING;
 
-	strcpy(lex->buffer, string);
+	lex->buffer = string;
 	lex->pos = lex->buffer;
 
 	lex->curr_line = 1;
@@ -58,6 +55,7 @@ int Lexer_LoadFromString(struct lexer * lex, const char * string) {
 }
 
 int Lexer_LoadFromFile (struct lexer * lex, FILE * file) {
+	lex->mode = LEXER_STRING;
 	long long size, old_pos;
 
 	old_pos = ftell(file);
@@ -78,20 +76,52 @@ int Lexer_LoadFromFile (struct lexer * lex, FILE * file) {
 	return 1;
 }
 
+int Lexer_LoadFromStream(struct lexer * lex, FILE * stream) {
+	lex->mode = LEXER_STREAM;
+	lex->stream = stream;
+	lex->curr_line = 1;
+	lex->curr_char = 1;
+	lex->last_char = -1;
+
+	return 1;
+}
+
 void Lexer_Free(struct lexer * lex) {
 	if (lex && lex->buffer) free(lex->buffer);
 }
 
-inline char Lexer_CurrChar(struct lexer * lex) {
-	return *lex->pos;
+int fpeek(FILE *stream) {
+	int c;
+	c = fgetc(stream);
+	ungetc(c, stream);
+	return c;
 }
 
-char Lexer_NextChar(struct lexer * lex) {
-	char c = *(++lex->pos);
+int Lexer_CurrChar(struct lexer * lex) {
+	int c;
+	if (lex->mode == LEXER_STREAM) {
+		c = lex->last_char;
+		//return lex->last_char;	
+		//c = fpeek(lex->stream);
+	} else
+		c = *lex->pos;
+	return c;
+}
+
+int Lexer_NextChar(struct lexer * lex) {
+	int c;
+	if (lex->mode == LEXER_STREAM) {
+		c = fgetc(lex->stream);
+	} else {
+		c = *(++lex->pos);
+	}
+
 	if (c == '\n') {
 		++lex->curr_line;
 		lex->curr_char = 1;
 	}
+
+	lex->last_char = c;
 	return c;
 }
 
@@ -100,14 +130,18 @@ int Lexer_CurrToken(struct lexer * lex) {
 }
 
 int __Lexer_NextToken(struct lexer * lex) {
+	if (lex->mode == LEXER_STREAM && lex->last_char == -1)
+		Lexer_NextChar(lex);
+
 	Lexer_GetError(); // nulls error flag
-	char last;
+	int last;
 
 	while (1) {
 		Lexer_HandleWhitespaces(lex);
 		Lexer_HandleComments(lex);
 
-		switch (Lexer_GetCharType(Lexer_CurrChar(lex))) {
+		int type = Lexer_GetCharType(Lexer_CurrChar(lex));
+		switch (type) {
 		case CHAR_EOF:
 			return TOKEN_EOF;
 		case CHAR_STRING:
@@ -184,7 +218,9 @@ int Lexer_AnalyseSymbol(struct lexer * lex) {
 
 	WriteStringBuffer(&buff, Lexer_CurrChar(lex));
 
-	while (Lexer_IsValidSymbolChar(Lexer_NextChar(lex))) {
+	while (1) {
+		int c = Lexer_NextChar(lex);
+		if (!Lexer_IsValidSymbolChar(c)) break;
 		WriteStringBuffer(&buff, Lexer_CurrChar(lex));
 	}
 
@@ -238,8 +274,9 @@ int Lexer_AnalyseNumber(struct lexer * lex) {
 	return TOKEN_NUMBER;
 }
 
-int Lexer_GetCharType(char c) {
+int Lexer_GetCharType(int c) {
 	if (c == '\0')  return CHAR_EOF;
+	if (c == EOF)   return CHAR_EOF;
 	if (c == '"')   return CHAR_STRING;
 	if (isdigit(c) || c == '-' || c == '.') return CHAR_NUMBER;
 	if (Lexer_IsValidSymbolChar(c)) return CHAR_SYMBOL;

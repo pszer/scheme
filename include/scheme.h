@@ -7,6 +7,7 @@
 
 extern scheme_env SYSTEM_GLOBAL_ENVIRONMENT;
 extern scheme_env USER_INITIAL_ENVIRONMENT;
+extern int SCHEME_INTERPRETER_HALT;
 
 void Scheme_DefineStartupEnv( void );
 void Scheme_FreeStartupEnv( void );

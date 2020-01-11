@@ -15,7 +15,7 @@ scheme_define Scheme_CreateDefineLiteral(const char * string, scheme_object * ob
 void Scheme_FreeDefine(scheme_define * def) {
 	if (!def) return;
 	if (def->name) free(def->name);
-	Scheme_FreeObject(def->object);
+	Scheme_DereferenceObject(&def->object);
 }
 
 void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj) {

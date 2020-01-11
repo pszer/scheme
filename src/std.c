@@ -1,4 +1,10 @@
 #include "std.h"
+#include "scheme.h"
+
+scheme_object * __Exit__(scheme_object ** objs, size_t count) {
+	SCHEME_INTERPRETER_HALT = 1;
+	return NULL;
+}
 
 void __Math_Complement__(scheme_number * left, scheme_number * right) {
 	int ltype = left->type;

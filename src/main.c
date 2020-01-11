@@ -43,25 +43,23 @@ void test_lexer(struct lexer * lex) {
 	}
 }
 
-#include <stdlib.h>
-
 int main(int argc, char ** argv) {
 	struct lexer lex;
-	FILE * file = fopen("test.scm", "r");
+	/*FILE * file = fopen("test.scm", "r");
 	if (!file) {
 		printf("Cannot open file\n");
 		return 0;
-	}
+	}*/
 
-	if (!Lexer_LoadFromFile(&lex, file)) {
+	/*if (!Lexer_LoadFromFile(&lex, file)) {
 		printf("Error\n");
 		return 0;
-	}
+	}*/
 
+	Lexer_LoadFromStream(&lex, stdin);
 	Scheme_DefineStartupEnv();
 
-	//test_lexer(&lex);
-	do {
+	/*do {
 		scheme_object * obj = Parser_Parse(&lex);
 		if (!obj) break;
 
@@ -70,11 +68,30 @@ int main(int argc, char ** argv) {
 		scheme_object * car, * cdr, * base = obj;
 
 		Scheme_FreeObject(obj);
-	} while (Lexer_CurrToken(&lex) != TOKEN_EOF);
+	} while (Lexer_CurrToken(&lex) != TOKEN_EOF);*/
+
+	while (!SCHEME_INTERPRETER_HALT) {
+		printf("~> ");
+		scheme_object * obj = Parser_Parse(&lex);
+		if (!obj) break;
+
+		scheme_object * eval_result = Scheme_Eval(obj, &USER_INITIAL_ENVIRONMENT);
+		char * err = Scheme_GetError();
+
+		if (eval_result) {
+			Scheme_Display(eval_result);
+			printf("\n");
+		} else if (err) {
+			printf("%s\n", err);
+		}
+
+		Scheme_DereferenceObject(&obj);
+		Scheme_DereferenceObject(&eval_result);
+	}
 
 	Scheme_FreeStartupEnv();
 	
-	fclose(file);
-	Lexer_Free(&lex);
+	//fclose(file);
+	//Lexer_Free(&lex);
 	return 0;
 }
