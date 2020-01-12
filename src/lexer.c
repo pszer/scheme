@@ -2,6 +2,7 @@
 
 char * __ERR_MSG__EXPECTED_QUOTE__ = "Expected terminating \" character";
 char * __ERR_MSG__MALFORMED_NUMBER__ = "Malformed number literal";
+char * __ERR_MSG__MALFORMED_BOOLEAN__ = "Malformed boolean literal";
 
 char * Lexer_ErrorString = NULL;
 char * Lexer_GetError(void) {
@@ -150,6 +151,8 @@ int __Lexer_NextToken(struct lexer * lex) {
 			return Lexer_AnalyseSymbol(lex);
 		case CHAR_NUMBER:
 			return Lexer_AnalyseNumber(lex);
+		case CHAR_BOOLEAN:
+			return Lexer_AnalyseBoolean(lex);
 		case CHAR_UNARY:
 			last = Lexer_CurrChar(lex);
 			Lexer_NextChar(lex);
@@ -274,10 +277,26 @@ int Lexer_AnalyseNumber(struct lexer * lex) {
 	return TOKEN_NUMBER;
 }
 
+int Lexer_AnalyseBoolean(struct lexer * lex) {
+	if (Lexer_NextChar(lex) == 't') {
+		lex->bool_val = 1;
+	} else if (Lexer_CurrChar(lex) == 'f') {
+		lex->bool_val = 0;
+	} else {
+		Lexer_SetError(__ERR_MSG__MALFORMED_BOOLEAN__);
+		return TOKEN_EOF;
+	}
+
+	Lexer_NextChar(lex);
+
+	return TOKEN_BOOLEAN;
+}
+
 int Lexer_GetCharType(int c) {
 	if (c == '\0')  return CHAR_EOF;
 	if (c == EOF)   return CHAR_EOF;
 	if (c == '"')   return CHAR_STRING;
+	if (c == '#') return CHAR_BOOLEAN;
 	if (isdigit(c) || c == '-' || c == '.') return CHAR_NUMBER;
 	if (Lexer_IsValidSymbolChar(c)) return CHAR_SYMBOL;
 	else return CHAR_UNARY;

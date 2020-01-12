@@ -18,6 +18,9 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 	case SCHEME_NUMBER:
 		(*object)->payload = malloc(sizeof(scheme_number));
 		break;
+	case SCHEME_BOOLEAN:
+		(*object)->payload = malloc(sizeof(scheme_boolean));
+		break;
 	case SCHEME_SYMBOL:
 		(*object)->payload = malloc(sizeof(scheme_symbol));
 		break;
@@ -29,6 +32,7 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 		break;
 	case SCHEME_ENV:
 		(*object)->payload = malloc(sizeof(scheme_env_obj));
+		break;
 	case SCHEME_CFUNC:
 		(*object)->payload = malloc(sizeof(scheme_cfunc));
 		break;
@@ -58,8 +62,8 @@ void Scheme_DereferenceObject(scheme_object ** pointer) {
 	if (!pointer) return;
 
 	if (*pointer) {
-		Scheme_Display(*pointer);
-		printf(" ref count : %i\n", (*pointer)->ref_count);
+		//Scheme_Display(*pointer);
+		//printf(" ref count : %i\n", (*pointer)->ref_count);
 		(*pointer)->ref_count -= 1;
 		if ((*pointer)->ref_count <= 0) {
 			Scheme_FreeObject(*pointer);
@@ -104,8 +108,8 @@ void Scheme_FreeFreedMemory(struct scheme_freed_memory * mem) {
 struct scheme_freed_memory * freed_mem = NULL;
 void Scheme_FreeObject(scheme_object * object) {
 	if (object == NULL) return;
-	Scheme_Display(object);
-	printf(" got freed!\n");
+	//Scheme_Display(object);
+	//printf(" got freed!\n");
 
 	#define freereturn(p) {p(object->payload);free(object);return;}
 	switch (object->type) {
@@ -119,11 +123,12 @@ void Scheme_FreeObject(scheme_object * object) {
 		free(object);
 		Scheme_FreeFreedMemory(freed_mem);
 		return;
-	case SCHEME_NUMBER: freereturn(Scheme_FreeNumber);
-	case SCHEME_SYMBOL: freereturn(Scheme_FreeSymbol);
-	case SCHEME_STRING: freereturn(Scheme_FreeString);
-	case SCHEME_LAMBDA: freereturn(Scheme_FreeLambda);
-	case SCHEME_CFUNC : freereturn(Scheme_FreeCFunc);
+	case SCHEME_NUMBER : freereturn(Scheme_FreeNumber);
+	case SCHEME_BOOLEAN: freereturn(Scheme_FreeBoolean);
+	case SCHEME_SYMBOL : freereturn(Scheme_FreeSymbol);
+	case SCHEME_STRING : freereturn(Scheme_FreeString);
+	case SCHEME_LAMBDA : freereturn(Scheme_FreeLambda);
+	case SCHEME_CFUNC  : freereturn(Scheme_FreeCFunc);
 	default: return;
 	}
 	#undef freereturn
@@ -156,6 +161,11 @@ void Scheme_FreeNumber(scheme_number * number) {
 	free(number);
 }
 
+void Scheme_FreeBoolean(scheme_boolean * boolean) {
+	if (boolean == NULL) return;
+	free(boolean);
+}
+
 void Scheme_FreeString(scheme_string * string) {
 	if (string == NULL) return;
 	if (string->string) free(string->string);
@@ -170,8 +180,24 @@ void Scheme_FreeSymbol(scheme_symbol * symbol) {
 
 void Scheme_FreeLambda(scheme_lambda * lambda) {
 	if (lambda == NULL) return;
-	if (lambda->arg_ids) free(lambda->arg_ids);
-	if (lambda->body) free(lambda->body);
+	if (lambda->arg_ids) {
+		/*int i;
+		for (i = 0; i < lambda->arg_count; ++i) {
+			free(lambda->arg_ids[i].symbol);
+		}*/
+		// the closure environment when freed will free
+		// the argument symbol strings anyway
+		free(lambda->arg_ids);
+	}
+
+	if (lambda->body) {
+		int i;
+		for (i = 0; i < lambda->body_count; ++i) {
+			Scheme_DereferenceObject(&lambda->body[i]);
+		} 
+		free(lambda->body);
+	}
+	Scheme_FreeEnv(&lambda->closure);
 	free(lambda);
 }
 
@@ -210,6 +236,15 @@ scheme_number * Scheme_GetNumber(scheme_object * obj) {
 	}
 
 	return (scheme_number *)obj->payload;
+}
+
+scheme_boolean * Scheme_GetBoolean(scheme_object * obj) {
+	if (obj->type != SCHEME_BOOLEAN) {
+		Scheme_SetError("Attempting to access non-boolean object as a boolean");
+		return NULL;
+	}
+
+	return (scheme_boolean *)obj->payload;
 }
 
 scheme_symbol * Scheme_GetSymbol(scheme_object * obj) {
@@ -276,7 +311,17 @@ scheme_object * Scheme_CreateSymbol(char * symbol_str) {
 	symbol->symbol = symbol_str;
 
 	return obj;
+}
 
+scheme_object * Scheme_CreateBoolean(char val) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_BOOLEAN);
+	if (!code) return NULL;
+
+	scheme_boolean * boolean = Scheme_GetBoolean(obj);
+	boolean->val = val;
+
+	return obj;
 }
 
 scheme_object * Scheme_CreateString(char * string_str) {
@@ -353,8 +398,8 @@ scheme_object * Scheme_CreateRational(long long numerator,
 
 }
 
-scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, scheme_object * body,
-	scheme_env* closure)
+scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, int body_count,
+	scheme_object ** body, scheme_env closure)
 {
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_LAMBDA);
@@ -364,13 +409,16 @@ scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * arg
 	l->arg_count = argc;
 	l->dot_args = dot_args;
 	l->arg_ids = args;
+	l->body_count = body_count;
 	l->body = body;
 	l->closure = closure;
 
 	return obj;
 }
 
-scheme_object * Scheme_CreateCFunc(int argc, char dot_args, scheme_object* (*func)(scheme_object**,size_t)) {
+scheme_object * Scheme_CreateCFunc(int argc, char dot_args, char special_form,
+	scheme_object* (*func)(scheme_object**,scheme_env*,size_t))
+{
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_CFUNC);
 	if (!code) return NULL;
@@ -378,6 +426,7 @@ scheme_object * Scheme_CreateCFunc(int argc, char dot_args, scheme_object* (*fun
 	scheme_cfunc * c = Scheme_GetCFunc(obj);
 	c->arg_count = argc;
 	c->dot_args = dot_args;
+	c->special_form = special_form;
 	c->func = func;
 
 	return obj;

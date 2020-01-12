@@ -21,7 +21,8 @@ enum {
 	TOKEN_EOF=-1 ,
 	TOKEN_SYMBOL=-2 ,
 	TOKEN_NUMBER=-3 ,
-	TOKEN_STRING=-4
+	TOKEN_BOOLEAN=-4 ,
+	TOKEN_STRING=-5
 };
 
 enum {
@@ -29,6 +30,7 @@ enum {
 	CHAR_SYMBOL,
 	CHAR_STRING,
 	CHAR_NUMBER,
+	CHAR_BOOLEAN,
 	CHAR_UNARY
 };
 
@@ -53,6 +55,8 @@ struct lexer {
 
 	FILE * stream;
 	int last_char;
+
+	char bool_val;
 
 	union {
 		char * symbol,
@@ -95,5 +99,6 @@ void Lexer_HandleComments(struct lexer * lex);
 int Lexer_AnalyseString(struct lexer * lex);
 int Lexer_AnalyseSymbol(struct lexer * lex);
 int Lexer_AnalyseNumber(struct lexer * lex);
+int Lexer_AnalyseBoolean(struct lexer * lex);
 
 void Lexer_Free(struct lexer * lex);

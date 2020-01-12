@@ -6,11 +6,13 @@
 #include "error.h"
 
 typedef struct scheme_env_obj scheme_env_obj;
+typedef struct scheme_env scheme_env;
 
 enum {
 	SCHEME_NULL,
 	SCHEME_PAIR,
 	SCHEME_NUMBER,
+	SCHEME_BOOLEAN,
 	SCHEME_STRING,
 	SCHEME_SYMBOL,
 	SCHEME_LAMBDA,
@@ -57,6 +59,10 @@ enum {
 	NUMBER_DOUBLE
 };
 
+typedef struct scheme_boolean {
+	char val;
+} scheme_boolean;
+
 typedef struct scheme_number {
 	unsigned char type;
 
@@ -80,21 +86,24 @@ typedef struct scheme_lambda {
 	char dot_args;
 	scheme_symbol * arg_ids;
 
-	scheme_object * body;
+	int body_count;
+	scheme_object ** body;
 
-	scheme_env * closure;
+	scheme_env closure;
 } scheme_lambda;
 
 // scheme_object * func(scheme_object ** objects, size_t object_count);
 typedef struct scheme_cfunc {
-	scheme_object* (*func)(scheme_object **, size_t);
+	scheme_object* (*func)(scheme_object **, scheme_env*, size_t);
 	
 	int arg_count;
 	char dot_args;
+	char special_form;
 } scheme_cfunc;
 
 void Scheme_FreePair(scheme_pair * pair);
 void Scheme_FreeNumber(scheme_number * number);
+void Scheme_FreeBoolean(scheme_boolean * boolean);
 void Scheme_FreeString(scheme_string * string);
 void Scheme_FreeSymbol(scheme_symbol * symbol);
 void Scheme_FreeLambda(scheme_lambda * lambda);
@@ -102,8 +111,9 @@ void Scheme_FreeEnvObj(scheme_env_obj * env);
 void Scheme_FreeCFunc(scheme_cfunc * cfunc);
 
 scheme_pair    * Scheme_GetPair  (scheme_object * obj);
-scheme_string  * Scheme_GetString(scheme_object * obj);
 scheme_number  * Scheme_GetNumber(scheme_object * obj);
+scheme_boolean * Scheme_GetBoolean(scheme_object * obj);
+scheme_string  * Scheme_GetString(scheme_object * obj);
 scheme_symbol  * Scheme_GetSymbol(scheme_object * obj);
 scheme_lambda  * Scheme_GetLambda(scheme_object * obj);
 scheme_env_obj * Scheme_GetEnvObj(scheme_object * obj);
@@ -115,13 +125,16 @@ scheme_cfunc   * Scheme_GetCFunc (scheme_object * obj);
  */
 scheme_object * Scheme_CreateNull( void );
 scheme_object * Scheme_CreateSymbol(char * symbol);
-scheme_object * Scheme_CreateString(char * string);
 scheme_object * Scheme_CreatePair(scheme_object * car, scheme_object * cdr);
+scheme_object * Scheme_CreateBoolean(char val);
 scheme_object * Scheme_CreateInteger(long long integer);
 scheme_object * Scheme_CreateRational(long long numerator, long long denominator);
 scheme_object * Scheme_CreateDouble(double value);
-scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, scheme_object * body, scheme_env* cl);
-scheme_object * Scheme_CreateCFunc(int argc, char dot_args, scheme_object* (*func)(scheme_object**,size_t));
+scheme_object * Scheme_CreateString(char * string);
+scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, int body_count,
+	scheme_object ** body, scheme_env cl);
+scheme_object * Scheme_CreateCFunc(int argc, char dot_args, char special_form,
+	scheme_object* (*func)(scheme_object**,scheme_env*,size_t));
 
 scheme_object * Scheme_CreateSymbolLiteral(const char * symbol);
 scheme_object * Scheme_CreateStringLiteral(const char * string);

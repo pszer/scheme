@@ -1,6 +1,6 @@
 #include "error.h"
 
-char * error_str = NULL;
+char * error_str = NULL ;
 char * Scheme_GetError(void) {
 	char * temp = error_str;
 	error_str = NULL;

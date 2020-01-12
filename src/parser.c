@@ -8,19 +8,16 @@ scheme_object * Parser_Parse(struct lexer * lex) {
 scheme_object * Parser_ParseExpression(struct lexer * lex) {
 	switch (Lexer_CurrToken(lex)) {
 	case TOKEN_EOF:
-		//printf("EOF\n");
 		return NULL;
 	case TOKEN_SYMBOL:
-		//printf("symbol\n");
 		return Parser_ParseSymbol(lex);
-	case TOKEN_STRING:
-		//printf("string\n");
-		return Parser_ParseString(lex);
 	case TOKEN_NUMBER:
-		//printf("number\n");
 		return Parser_ParseNumber(lex);
+	case TOKEN_BOOLEAN:
+		return Parser_ParseBoolean(lex);
+	case TOKEN_STRING:
+		return Parser_ParseString(lex);
 	case '(':
-		//printf("list\n");
 		return Parser_ParseList(lex);
 	default:
 		Scheme_SetError("unexpected token");
@@ -45,6 +42,11 @@ scheme_object * Parser_ParseNumber(struct lexer * lex) {
 
 	return obj;
 }
+
+scheme_object * Parser_ParseBoolean(struct lexer * lex) {
+	scheme_object * obj = Scheme_CreateBoolean(lex->bool_val);
+	return obj;
+} 
 
 scheme_object * Parser_ParseSymbol(struct lexer * lex) {
 	scheme_object * obj = Scheme_CreateSymbol(lex->symbol);

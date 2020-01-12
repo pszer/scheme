@@ -2,16 +2,24 @@
 
 #include <string.h>
 
-typedef struct scheme_env scheme_env;
-
-#include "object.h"
-
 #define SCOPE_SIZE 8
 
+typedef struct scheme_object scheme_object;
 typedef struct scheme_define {
 	char * name;
 	scheme_object * object;
 } scheme_define;
+
+typedef struct scheme_env scheme_env;
+struct scheme_env {
+	int size, count;
+	scheme_define * defs;
+
+	// pointer to parent env
+	scheme_env * parent;
+};
+
+#include "object.h"
 
 scheme_define Scheme_CreateDefine(char * string, scheme_object * obj);
 scheme_define Scheme_CreateDefineLiteral(const char * string, scheme_object * obj);
@@ -26,14 +34,6 @@ void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj);
 char LexigraphicCompare(const char * a, const char * b);
 
 // definitions in a scheme_environment are sorted lexigraphically
-
-struct scheme_env {
-	int size, count;
-	scheme_define * defs;
-
-	// pointer to parent env
-	scheme_env * parent;
-};
 
 typedef struct scheme_env_obj {
 	scheme_env env;

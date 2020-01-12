@@ -1,22 +1,28 @@
 #include "scheme.h"
-#include "std.h"
 
 scheme_env SYSTEM_GLOBAL_ENVIRONMENT;
 scheme_env USER_INITIAL_ENVIRONMENT;
 int SCHEME_INTERPRETER_HALT = 0;
 
-#define CREATESYSDEF(func, name, argc, dotargs) \
+#define CREATESYSDEF(func, name, argc, dotargs, special_form) \
 	Scheme_DefineEnv(&SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
-		Scheme_CreateCFunc(argc,dotargs,func))) 
+		Scheme_CreateCFunc(argc,dotargs,special_form,func)))
+#define CREATESPEC(func, name, tok) \
+	Scheme_DefineEnv(&SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
+		Scheme_CreateCFunc(tok ## _ARGC,tok ## _DOT,1,func)))
+
 void Scheme_DefineStartupEnv( void ) {
 	SYSTEM_GLOBAL_ENVIRONMENT = Scheme_CreateEnv(NULL, 128);
-	USER_INITIAL_ENVIRONMENT = Scheme_CreateEnv(&SYSTEM_GLOBAL_ENVIRONMENT, 128);
+	USER_INITIAL_ENVIRONMENT  = Scheme_CreateEnv(&SYSTEM_GLOBAL_ENVIRONMENT, 128);
 
-	CREATESYSDEF(__Scheme_CallAdd__, "+", 1, 1);
-	CREATESYSDEF(__Scheme_CallSub__, "-", 1, 1);
-	CREATESYSDEF(__Scheme_CallMul__, "*", 1, 1);
-	CREATESYSDEF(__Scheme_CallDiv__, "/", 1, 1);
-	CREATESYSDEF(__Exit__, "exit", 0, 0);
+	CREATESPEC(Scheme_Special_Define, "define", SPEC_DEFINE);
+	CREATESPEC(Scheme_Special_If, "if", SPEC_IF);
+
+	CREATESYSDEF(__Scheme_CallAdd__, "+", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallSub__, "-", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallMul__, "*", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallDiv__, "/", 1, 1, 0);
+	CREATESYSDEF(__Exit__, "exit", 0, 0, 0);
 }
 
 void Scheme_FreeStartupEnv( void ) {
@@ -41,22 +47,33 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
 		else
 			length = Scheme_ListLength(pair->cdr);
 
+		scheme_object * application = Scheme_Eval(pair->car, env);
+		if (!application) return NULL;
+
+		char is_special_form = 0;
+		if (application->type == SCHEME_CFUNC) {
+			scheme_cfunc * cfunc = Scheme_GetCFunc(application);
+			is_special_form = cfunc->special_form;
+		}
+
 		array = malloc(length * sizeof(scheme_object *));
 		node = pair->cdr;
 		for (i = 0; i < length; ++i) {
 			scheme_pair * p = Scheme_GetPair(node);
-			array[i] = Scheme_Eval(p->car, env);
+			if (!is_special_form)
+				array[i] = Scheme_Eval(p->car, env);
+			else
+				array[i] = p->car;
 			node = p->cdr;
 		}
 
-		scheme_object * application = Scheme_Eval(pair->car, env);
-		if (!application) return NULL;
-
-		apply_result = Scheme_Apply(application, array, length);
+		apply_result = Scheme_Apply(application, array, length, env);
 
 		Scheme_DereferenceObject(&application);
-		for (i = 0; i < length; ++i) {
-			Scheme_DereferenceObject(array + i);
+		if (!is_special_form) {
+			for (i = 0; i < length; ++i) {
+				Scheme_DereferenceObject(array + i);
+			}
 		}
 
 		free(array);
@@ -82,7 +99,7 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
 	}
 }
 
-scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int arg_count) {
+scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int arg_count, scheme_env * env) {
 	if (func->type == SCHEME_LAMBDA) {
 		return NULL;
 	} else if (func->type == SCHEME_CFUNC) {
@@ -95,7 +112,7 @@ scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int ar
 			return NULL;
 		}
 		
-		scheme_object * result = cfunc->func(args, arg_count);
+		scheme_object * result = cfunc->func(args, env, arg_count);
 		return result;
 	} else {
 		Scheme_SetError("tried to call non-applicable object");
@@ -127,6 +144,7 @@ void Scheme_Display(scheme_object * obj) {
 	scheme_number * num;
 	scheme_string * str;
 	scheme_symbol * sym;
+	scheme_boolean * boolean;
 
 	switch (obj->type) {
 	case SCHEME_SYMBOL:
@@ -137,6 +155,11 @@ void Scheme_Display(scheme_object * obj) {
 	case SCHEME_STRING:
 		str = Scheme_GetString(obj);
 		printf("%s", str->string);
+		break;
+
+	case SCHEME_BOOLEAN:
+		boolean = Scheme_GetBoolean(obj);
+		printf("#%c", boolean->val ? 't' : 'f');
 		break;
 
 	case SCHEME_NUMBER:
@@ -164,4 +187,22 @@ void Scheme_Display(scheme_object * obj) {
 
 void Scheme_Newline( void ) {
 	putchar('\n');
+}
+
+char Scheme_BoolTest(scheme_object * obj) {
+	if (!obj) return 0;
+	if (obj->type == SCHEME_BOOLEAN) {
+		return Scheme_GetBoolean(obj)->val;
+	} else if (obj->type == SCHEME_NUMBER) {
+		scheme_number * num = Scheme_GetNumber(obj);
+
+		switch (num->type) {
+		case NUMBER_INTEGER : return num->integer_val != 0;
+		case NUMBER_RATIONAL: return num->numerator   != 0;
+		case NUMBER_DOUBLE  : return num->double_val  != 0.0;
+		default: return 0;
+		}
+	} 
+
+	return 0;
 }
