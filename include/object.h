@@ -73,7 +73,6 @@ typedef struct scheme_number {
 	};
 } scheme_number;
 
-
 typedef struct scheme_string {
 	union {
 		char * string, * symbol;
@@ -89,12 +88,12 @@ typedef struct scheme_lambda {
 	int body_count;
 	scheme_object ** body;
 
-	scheme_env closure;
+	scheme_object * closure;
 } scheme_lambda;
 
 // scheme_object * func(scheme_object ** objects, size_t object_count);
 typedef struct scheme_cfunc {
-	scheme_object* (*func)(scheme_object **, scheme_env*, size_t);
+	scheme_object* (*func)(scheme_object **, scheme_object*, size_t);
 	
 	int arg_count;
 	char dot_args;
@@ -107,7 +106,7 @@ void Scheme_FreeBoolean(scheme_boolean * boolean);
 void Scheme_FreeString(scheme_string * string);
 void Scheme_FreeSymbol(scheme_symbol * symbol);
 void Scheme_FreeLambda(scheme_lambda * lambda);
-void Scheme_FreeEnvObj(scheme_env_obj * env);
+void Scheme_FreeEnvObj(scheme_env * env);
 void Scheme_FreeCFunc(scheme_cfunc * cfunc);
 
 scheme_pair    * Scheme_GetPair  (scheme_object * obj);
@@ -116,7 +115,7 @@ scheme_boolean * Scheme_GetBoolean(scheme_object * obj);
 scheme_string  * Scheme_GetString(scheme_object * obj);
 scheme_symbol  * Scheme_GetSymbol(scheme_object * obj);
 scheme_lambda  * Scheme_GetLambda(scheme_object * obj);
-scheme_env_obj * Scheme_GetEnvObj(scheme_object * obj);
+scheme_env     * Scheme_GetEnvObj(scheme_object * obj);
 scheme_cfunc   * Scheme_GetCFunc (scheme_object * obj);
 
 /* Object constructors
@@ -131,10 +130,11 @@ scheme_object * Scheme_CreateInteger(long long integer);
 scheme_object * Scheme_CreateRational(long long numerator, long long denominator);
 scheme_object * Scheme_CreateDouble(double value);
 scheme_object * Scheme_CreateString(char * string);
+scheme_object * Scheme_CreateEnvObj(scheme_object * parent, int init_size);
 scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, int body_count,
-	scheme_object ** body, scheme_env cl);
+	scheme_object ** body, scheme_object * closure);
 scheme_object * Scheme_CreateCFunc(int argc, char dot_args, char special_form,
-	scheme_object* (*func)(scheme_object**,scheme_env*,size_t));
+	scheme_object* (*func)(scheme_object**,scheme_object*,size_t));
 
 scheme_object * Scheme_CreateSymbolLiteral(const char * symbol);
 scheme_object * Scheme_CreateStringLiteral(const char * string);

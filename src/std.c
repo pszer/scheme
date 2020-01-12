@@ -1,7 +1,7 @@
 #include "std.h"
 #include "scheme.h"
 
-scheme_object * __Exit__(scheme_object ** objs, scheme_env * env, size_t count) {
+scheme_object * __Exit__(scheme_object ** objs, scheme_object * env, size_t count) {
 	SCHEME_INTERPRETER_HALT = 1;
 	return NULL;
 }
@@ -80,7 +80,7 @@ void __RationalToDouble__(scheme_number * num) {
 }
 
 #define __CALL_ARITHMETIC(callname, func) \
-scheme_object * callname(scheme_object ** objs, scheme_env * env, size_t count) { \
+scheme_object * callname(scheme_object ** objs, scheme_object * env, size_t count) { \
 	scheme_number nums[count]; \
 	size_t i; \
 	for (i = 0; i < count; ++i) { \

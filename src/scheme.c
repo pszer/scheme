@@ -1,21 +1,28 @@
 #include "scheme.h"
 
-scheme_env SYSTEM_GLOBAL_ENVIRONMENT;
-scheme_env USER_INITIAL_ENVIRONMENT;
 int SCHEME_INTERPRETER_HALT = 0;
 
+scheme_object * SYSTEM_GLOBAL_ENVIRONMENT_OBJ;
+scheme_object * USER_INITIAL_ENVIRONMENT_OBJ;
+scheme_env * SYSTEM_GLOBAL_ENVIRONMENT;
+scheme_env * USER_INITIAL_ENVIRONMENT;
+
 #define CREATESYSDEF(func, name, argc, dotargs, special_form) \
-	Scheme_DefineEnv(&SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
+	Scheme_DefineEnv(SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
 		Scheme_CreateCFunc(argc,dotargs,special_form,func)))
 #define CREATESPEC(func, name, tok) \
-	Scheme_DefineEnv(&SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
+	Scheme_DefineEnv(SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
 		Scheme_CreateCFunc(tok ## _ARGC,tok ## _DOT,1,func)))
 
 void Scheme_DefineStartupEnv( void ) {
-	SYSTEM_GLOBAL_ENVIRONMENT = Scheme_CreateEnv(NULL, 128);
-	USER_INITIAL_ENVIRONMENT  = Scheme_CreateEnv(&SYSTEM_GLOBAL_ENVIRONMENT, 128);
+	SYSTEM_GLOBAL_ENVIRONMENT_OBJ = Scheme_CreateEnvObj(NULL, 128);
+	USER_INITIAL_ENVIRONMENT_OBJ  = Scheme_CreateEnvObj(SYSTEM_GLOBAL_ENVIRONMENT_OBJ, 128);
+
+	SYSTEM_GLOBAL_ENVIRONMENT = Scheme_GetEnvObj(SYSTEM_GLOBAL_ENVIRONMENT_OBJ);
+	USER_INITIAL_ENVIRONMENT  = Scheme_GetEnvObj(USER_INITIAL_ENVIRONMENT_OBJ);
 
 	CREATESPEC(Scheme_Special_Define, "define", SPEC_DEFINE);
+	CREATESPEC(Scheme_Special_Lambda, "lambda", SPEC_LAMBDA);
 	CREATESPEC(Scheme_Special_If, "if", SPEC_IF);
 
 	CREATESYSDEF(__Scheme_CallAdd__, "+", 1, 1, 0);
@@ -26,11 +33,11 @@ void Scheme_DefineStartupEnv( void ) {
 }
 
 void Scheme_FreeStartupEnv( void ) {
-	Scheme_FreeEnv(&SYSTEM_GLOBAL_ENVIRONMENT);
-	Scheme_FreeEnv(&USER_INITIAL_ENVIRONMENT);
+	Scheme_FreeObject(SYSTEM_GLOBAL_ENVIRONMENT_OBJ);
+	Scheme_FreeObject(USER_INITIAL_ENVIRONMENT_OBJ);
 }
 
-scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
+scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 	if (obj == NULL) return NULL;
 
 	switch (obj->type) {
@@ -81,10 +88,15 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
 		break; }
 	case SCHEME_SYMBOL: {
 		scheme_symbol * sym;
+		scheme_env    * env_pointer = Scheme_GetEnvObj(env);
+		if (!env_pointer) {
+			Scheme_SetError("bad environment");
+			return NULL;
+		}
 		scheme_define * def;
 
 		sym = Scheme_GetSymbol(obj);
-		def = Scheme_GetEnv(env, sym->symbol);
+		def = Scheme_GetEnv(env_pointer, sym->symbol);
 		if (def == NULL) {
 			Scheme_SetError("unbound variable");
 			return NULL;
@@ -99,10 +111,42 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_env * env) {
 	}
 }
 
-scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int arg_count, scheme_env * env) {
+scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int arg_count, scheme_object * env) {
 	if (func->type == SCHEME_LAMBDA) {
-		return NULL;
+		scheme_lambda * lambda = Scheme_GetLambda(func);
+
+		if (arg_count < lambda->arg_count) {
+			Scheme_SetError("λ call error : too few arguments");
+			return NULL;
+		} else if (!lambda->dot_args && arg_count > lambda->arg_count) {
+			Scheme_SetError("λ call error : too many arguments");
+			return NULL;
+		}
+
+		int i;
+		scheme_object * new_env_obj = Scheme_CreateEnvObj(env, lambda->arg_count+1);
+		scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
+		for (i = 0; i < arg_count; ++i) {
+			char * arg_name         = strdup(lambda->arg_ids[i].symbol);
+			scheme_object * arg_val = Scheme_Eval(args[i], env);
+			Scheme_DefineEnv(new_env, Scheme_CreateDefine(arg_name, arg_val));
+		}
+
+		scheme_object * return_val = NULL;
+		for (i = 0; i < lambda->body_count; ++i) {
+			scheme_object * body_eval = Scheme_Eval(lambda->body[i], new_env_obj);
+			if (i == lambda->body_count-1) {
+				return_val = body_eval;
+				break;
+			} else {
+				Scheme_DereferenceObject(&body_eval);
+			}
+		}
+
+		Scheme_DereferenceObject(&new_env_obj);
+		return return_val;
 	} else if (func->type == SCHEME_CFUNC) {
+
 		scheme_cfunc * cfunc = Scheme_GetCFunc(func);
 		if (arg_count < cfunc->arg_count) {
 			Scheme_SetError("bad arg count");
@@ -114,6 +158,7 @@ scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int ar
 		
 		scheme_object * result = cfunc->func(args, env, arg_count);
 		return result;
+
 	} else {
 		Scheme_SetError("tried to call non-applicable object");
 		return NULL;
@@ -186,7 +231,7 @@ void Scheme_Display(scheme_object * obj) {
 	case SCHEME_LAMBDA: {
 		scheme_lambda * lambda = Scheme_GetLambda(obj);
 		int i;
-		putchar('(');
+		printf("λ(");
 		for (i = 0; i < lambda->arg_count; ++i) {
 			printf("%s", lambda->arg_ids[i].symbol);
 			if (i != lambda->arg_count-1) putchar(' ');

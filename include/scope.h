@@ -16,7 +16,7 @@ struct scheme_env {
 	scheme_define * defs;
 
 	// pointer to parent env
-	scheme_env * parent;
+	scheme_object * parent;
 };
 
 #include "object.h"
@@ -35,11 +35,7 @@ char LexigraphicCompare(const char * a, const char * b);
 
 // definitions in a scheme_environment are sorted lexigraphically
 
-typedef struct scheme_env_obj {
-	scheme_env env;
-} scheme_env_obj;
-
-scheme_env Scheme_CreateEnv(scheme_env * parent, int init_size);
+scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size);
 void Scheme_FreeEnv(scheme_env * env);
 void Scheme_ResizeEnv(scheme_env * env, int new_size);
 

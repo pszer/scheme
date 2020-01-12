@@ -19,7 +19,7 @@ void Scheme_FreeDefine(scheme_define * def) {
 }
 
 void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj) {
-	if (def->object) Scheme_FreeObject(def->object);
+	if (def->object) Scheme_DereferenceObject(&def->object);
 	def->object = obj;
 }
 
@@ -41,7 +41,7 @@ char LexigraphicCompare(const char * a, const char * b) {
 	};
 }
 
-scheme_env Scheme_CreateEnv(scheme_env * parent, int init_size) {
+scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size) {
 	scheme_env env;
 	env.parent = parent;
 
@@ -121,7 +121,12 @@ scheme_define * Scheme_GetEnv(scheme_env * env, char * name) {
 	              * r = defs + env->count;
 	while (1) {
 		if (r == l) {
-			return Scheme_GetEnv(env->parent, name);
+			if (env->parent) {
+				scheme_env * deeper_env = Scheme_GetEnvObj(env->parent);
+				return Scheme_GetEnv(deeper_env, name);
+			} else {
+				return NULL;
+			}
 		}
 
 		scheme_define * m = l + (r-l)/2;

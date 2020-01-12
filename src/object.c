@@ -31,7 +31,7 @@ int Scheme_AllocateObject(scheme_object ** object, int type) {
 		(*object)->payload = malloc(sizeof(scheme_lambda));
 		break;
 	case SCHEME_ENV:
-		(*object)->payload = malloc(sizeof(scheme_env_obj));
+		(*object)->payload = malloc(sizeof(scheme_env));
 		break;
 	case SCHEME_CFUNC:
 		(*object)->payload = malloc(sizeof(scheme_cfunc));
@@ -128,6 +128,7 @@ void Scheme_FreeObject(scheme_object * object) {
 	case SCHEME_SYMBOL : freereturn(Scheme_FreeSymbol);
 	case SCHEME_STRING : freereturn(Scheme_FreeString);
 	case SCHEME_LAMBDA : freereturn(Scheme_FreeLambda);
+	case SCHEME_ENV    : freereturn(Scheme_FreeEnvObj);
 	case SCHEME_CFUNC  : freereturn(Scheme_FreeCFunc);
 	default: return;
 	}
@@ -184,10 +185,10 @@ void Scheme_FreeSymbol(scheme_symbol * symbol) {
 void Scheme_FreeLambda(scheme_lambda * lambda) {
 	if (lambda == NULL) return;
 	if (lambda->arg_ids) {
-		/*int i;
+		int i;
 		for (i = 0; i < lambda->arg_count; ++i) {
 			free(lambda->arg_ids[i].symbol);
-		}*/
+		}
 		// the closure environment when freed will free
 		// the argument symbol strings anyway
 		free(lambda->arg_ids);
@@ -201,13 +202,13 @@ void Scheme_FreeLambda(scheme_lambda * lambda) {
 		free(lambda->body);
 	}
 
-	Scheme_FreeEnv(&lambda->closure);
+	Scheme_DereferenceObject(&lambda->closure);
 	free(lambda);
 }
 
-void Scheme_FreeEnvObj(scheme_env_obj * env) {
+void Scheme_FreeEnvObj(scheme_env * env) {
 	if (env == NULL) return;
-	Scheme_FreeEnv(&env->env);
+	Scheme_FreeEnv(env);
 	free(env);
 }
 
@@ -269,13 +270,13 @@ scheme_lambda * Scheme_GetLambda(scheme_object * obj) {
 	return (scheme_lambda *)obj->payload;
 }
 
-scheme_env_obj * Scheme_GetEnvObj(scheme_object * obj) {
+scheme_env * Scheme_GetEnvObj(scheme_object * obj) {
 	if (obj->type != SCHEME_ENV) {
 		Scheme_SetError("Attempting to access non-environment object as a environment");
 		return NULL;
 	}
 
-	return (scheme_env_obj *)obj->payload;
+	return (scheme_env *)obj->payload;
 }
 
 scheme_cfunc * Scheme_GetCFunc (scheme_object * obj) {
@@ -402,8 +403,19 @@ scheme_object * Scheme_CreateRational(long long numerator,
 
 }
 
+scheme_object * Scheme_CreateEnvObj(scheme_object * parent, int init_size) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_ENV);
+	if (!code) return NULL;
+
+	scheme_env * env = Scheme_GetEnvObj(obj);
+	*env = Scheme_CreateEnv(parent, init_size);
+
+	return obj;
+}
+
 scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, int body_count,
-	scheme_object ** body, scheme_env closure)
+	scheme_object ** body, scheme_object * closure)
 {
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_LAMBDA);
@@ -421,7 +433,7 @@ scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * arg
 }
 
 scheme_object * Scheme_CreateCFunc(int argc, char dot_args, char special_form,
-	scheme_object* (*func)(scheme_object**,scheme_env*,size_t))
+	scheme_object* (*func)(scheme_object**,scheme_object*,size_t))
 {
 	scheme_object * obj;
 	int code = Scheme_AllocateObject(&obj, SCHEME_CFUNC);

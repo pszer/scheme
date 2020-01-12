@@ -75,7 +75,7 @@ int main(int argc, char ** argv) {
 		scheme_object * obj = Parser_Parse(&lex);
 		if (!obj) break;
 
-		scheme_object * eval_result = Scheme_Eval(obj, &USER_INITIAL_ENVIRONMENT);
+		scheme_object * eval_result = Scheme_Eval(obj, USER_INITIAL_ENVIRONMENT_OBJ);
 		char * err = Scheme_GetError();
 
 		if (eval_result) {
