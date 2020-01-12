@@ -182,6 +182,23 @@ void Scheme_Display(scheme_object * obj) {
 		Scheme_DisplayList(obj);
 		printf(") ");
 		break;
+
+	case SCHEME_LAMBDA: {
+		scheme_lambda * lambda = Scheme_GetLambda(obj);
+		int i;
+		putchar('(');
+		for (i = 0; i < lambda->arg_count; ++i) {
+			printf("%s", lambda->arg_ids[i].symbol);
+			if (i != lambda->arg_count-1) putchar(' ');
+		}
+		putchar(')');
+
+		for (i = 0; i < lambda->body_count; ++i) {
+			Scheme_Display(lambda->body[i]);
+			if (i != lambda->body_count-1)
+				putchar(' ');
+		}
+	} break;
 	}
 }
 

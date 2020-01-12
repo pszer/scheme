@@ -140,8 +140,11 @@ void Scheme_FreeObjectRecur(scheme_object * object) {
 	if (object->type != SCHEME_PAIR) {
 		Scheme_DereferenceObject(&object);
 	} else {
-		Scheme_FreePair(object->payload);
-		free(object);
+		object->ref_count -= 1;
+		if (object->ref_count <= 0) {
+			Scheme_FreePair(object->payload);
+			free(object);
+		}
 	}
 }
 
@@ -197,6 +200,7 @@ void Scheme_FreeLambda(scheme_lambda * lambda) {
 		} 
 		free(lambda->body);
 	}
+
 	Scheme_FreeEnv(&lambda->closure);
 	free(lambda);
 }
