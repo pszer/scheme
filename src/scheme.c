@@ -1,6 +1,7 @@
 #include "scheme.h"
 
 int SCHEME_INTERPRETER_HALT = 0;
+scheme_object DO_TAIL_CALL;
 
 scheme_object * SYSTEM_GLOBAL_ENVIRONMENT_OBJ;
 scheme_object * USER_INITIAL_ENVIRONMENT_OBJ;
@@ -33,8 +34,98 @@ void Scheme_DefineStartupEnv( void ) {
 }
 
 void Scheme_FreeStartupEnv( void ) {
-	Scheme_FreeObject(SYSTEM_GLOBAL_ENVIRONMENT_OBJ);
 	Scheme_FreeObject(USER_INITIAL_ENVIRONMENT_OBJ);
+	Scheme_FreeObject(SYSTEM_GLOBAL_ENVIRONMENT_OBJ);
+}
+
+scheme_call * call_stack;
+scheme_call * call_stack_end;
+void Scheme_InitCallStack(int stack_size) {
+	call_stack = malloc(sizeof(scheme_call) * SCHEME_STACK_SIZE);
+	call_stack_end = call_stack;
+}
+
+void Scheme_FreeCallStack(void) {
+	if (call_stack) free(call_stack);
+}
+
+int Scheme_PushCallStack(scheme_call call) {
+	// tail call check
+	if (call_stack_end != call_stack) {
+		scheme_call * last_call = call_stack_end-1;
+
+		int do_tail_call = 0;
+		if (call.is_cfunc_call && last_call->is_cfunc_call)
+			do_tail_call = (call.cfunc == last_call->cfunc);
+		else if (!call.is_cfunc_call && !last_call->is_cfunc_call)
+			do_tail_call = (call.proc == last_call->proc);
+
+		if (do_tail_call) {
+			printf("do_tail_call\n");
+			scheme_env * last_call_env = Scheme_GetEnvObj(last_call->env);
+			scheme_env * this_call_env = Scheme_GetEnvObj(call.env);
+			this_call_env->parent = last_call_env->parent;
+
+			Scheme_DereferenceObject(&last_call->env);
+			*last_call = call;
+			return 1;
+		}
+	}
+
+	*call_stack_end = call;
+	++call_stack_end;
+	return 0;
+}
+
+scheme_object * Scheme_PopCallStack(void) {
+	if (call_stack_end == call_stack) {
+		Scheme_SetError("call stack underflow");
+	}
+
+	scheme_object * result = Scheme_CallStack();
+	--call_stack_end;
+	return result;
+}
+
+scheme_object * Scheme_CallStack(void) {
+	scheme_call * call = call_stack_end - 1;
+
+tail_call:
+	if (!call->is_cfunc_call) {
+		/* lambda call */
+		scheme_object * return_val = NULL;
+		scheme_lambda * lambda = call->proc;
+
+		int i;
+		for (i = 0; i < lambda->body_count; ++i) {
+			scheme_object * expr = lambda->body[i];
+			scheme_object * body_eval = Scheme_Eval(expr,  call->env);
+			if (i == lambda->body_count-1) {
+				return_val = body_eval;
+				break;
+			} else {
+				Scheme_DereferenceObject(&body_eval);
+			}
+		}
+
+		if (return_val == &DO_TAIL_CALL) {
+			goto tail_call;
+		} else {
+			printf("got there %lli\n", (long long)Scheme_GetEnvObj(call->env));
+			Scheme_DereferenceObject(&call->env);
+			return return_val;
+		}
+	} else {
+		/* cfunc call */
+		return call->cfunc->func(call->args, call->env, call->arg_count);
+	}
+}
+
+char Scheme_CanTailCallLambda(scheme_lambda * lambda) {
+	scheme_call * call;
+	if (call_stack_end == call_stack) return 0;
+	call = call_stack_end-1;
+	return !call->is_cfunc_call && call->proc == lambda;
 }
 
 scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
@@ -114,55 +205,85 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int arg_count, scheme_object * env) {
 	if (func->type == SCHEME_LAMBDA) {
 		scheme_lambda * lambda = Scheme_GetLambda(func);
-
-		if (arg_count < lambda->arg_count) {
-			Scheme_SetError("λ call error : too few arguments");
-			return NULL;
-		} else if (!lambda->dot_args && arg_count > lambda->arg_count) {
-			Scheme_SetError("λ call error : too many arguments");
-			return NULL;
-		}
-
-		int i;
-		scheme_object * new_env_obj = Scheme_CreateEnvObj(env, lambda->arg_count+1);
-		scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
-		for (i = 0; i < arg_count; ++i) {
-			char * arg_name         = strdup(lambda->arg_ids[i].symbol);
-			scheme_object * arg_val = Scheme_Eval(args[i], env);
-			Scheme_DefineEnv(new_env, Scheme_CreateDefine(arg_name, arg_val));
-		}
-
-		scheme_object * return_val = NULL;
-		for (i = 0; i < lambda->body_count; ++i) {
-			scheme_object * body_eval = Scheme_Eval(lambda->body[i], new_env_obj);
-			if (i == lambda->body_count-1) {
-				return_val = body_eval;
-				break;
-			} else {
-				Scheme_DereferenceObject(&body_eval);
-			}
-		}
-
-		Scheme_DereferenceObject(&new_env_obj);
-		return return_val;
+		return Scheme_ApplyLambda(lambda, args, arg_count, env);
 	} else if (func->type == SCHEME_CFUNC) {
-
 		scheme_cfunc * cfunc = Scheme_GetCFunc(func);
-		if (arg_count < cfunc->arg_count) {
-			Scheme_SetError("bad arg count");
-			return NULL;
-		} else if (arg_count > cfunc->arg_count && !cfunc->dot_args) {
-			Scheme_SetError("bad arg count");
-			return NULL;
-		}
-		
-		scheme_object * result = cfunc->func(args, env, arg_count);
-		return result;
-
+		if (!cfunc->special_form)
+			return Scheme_ApplyCFunc(cfunc, args, arg_count, env);
+		else
+			return Scheme_ApplyCFuncSpecial(cfunc, args, arg_count, env);
 	} else {
 		Scheme_SetError("tried to call non-applicable object");
 		return NULL;
 	}
+}
+
+scheme_object * Scheme_ApplyCFunc(scheme_cfunc * cfunc, scheme_object ** args, int arg_count, scheme_object * env) {
+	if (!cfunc) return NULL;
+
+	if (arg_count < cfunc->arg_count) {
+		Scheme_SetError("bad arg count");
+		return NULL;
+	} else if (arg_count > cfunc->arg_count && !cfunc->dot_args) {
+		Scheme_SetError("bad arg count");
+		return NULL;
+	}
+
+	scheme_call cfunc_call;
+	cfunc_call.is_cfunc_call = 1;
+	cfunc_call.cfunc = cfunc;
+	cfunc_call.args = args;
+	cfunc_call.arg_count = arg_count;
+	cfunc_call.env = env;
+	//cfunc_call.env = env;
+
+	Scheme_PushCallStack(cfunc_call);
+	return Scheme_PopCallStack();	
+	//scheme_object * result = cfunc->func(args, env, arg_count);
+	//return result;
+}
+
+scheme_object * Scheme_ApplyCFuncSpecial(scheme_cfunc * cfunc, scheme_object ** args, int arg_count, scheme_object * env) {
+	if (!cfunc) return NULL;
+
+	if (arg_count < cfunc->arg_count) {
+		Scheme_SetError("bad arg count");
+		return NULL;
+	} else if (arg_count > cfunc->arg_count && !cfunc->dot_args) {
+		Scheme_SetError("bad arg count");
+		return NULL;
+	}
+
+	return cfunc->func(args, env, arg_count);
+}
+
+scheme_object * Scheme_ApplyLambda(scheme_lambda * lambda, scheme_object ** args, int arg_count, scheme_object * env) {
+	if (arg_count < lambda->arg_count) {
+		Scheme_SetError("λ call error : too few arguments");
+		return NULL;
+	} else if (!lambda->dot_args && arg_count > lambda->arg_count) {
+		Scheme_SetError("λ call error : too many arguments");
+		return NULL;
+	}
+
+	int i;
+	scheme_object * new_env_obj = Scheme_CreateEnvObj(env, lambda->arg_count+1);
+	scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
+	for (i = 0; i < arg_count; ++i) {
+		char * arg_name         = strdup(lambda->arg_ids[i].symbol);
+		scheme_object * arg_val;
+		Scheme_ReferenceObject(&arg_val, args[i]);
+		Scheme_DefineEnv(new_env, Scheme_CreateDefine(arg_name, arg_val));
+	}
+
+	scheme_call call;
+	call.is_cfunc_call = 0;
+	call.proc = lambda;
+	call.env = new_env_obj;
+
+	if (Scheme_PushCallStack(call))
+		return &DO_TAIL_CALL;
+	return Scheme_PopCallStack();
 }
 
 void Scheme_DisplayList(scheme_object * obj) {
@@ -244,6 +365,10 @@ void Scheme_Display(scheme_object * obj) {
 				putchar(' ');
 		}
 	} break;
+
+	case SCHEME_ENV:
+		printf("<env>");
+		break;
 	}
 }
 

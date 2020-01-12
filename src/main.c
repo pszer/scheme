@@ -70,6 +70,8 @@ int main(int argc, char ** argv) {
 		Scheme_FreeObject(obj);
 	} while (Lexer_CurrToken(&lex) != TOKEN_EOF);*/
 
+	Scheme_InitCallStack(SCHEME_STACK_SIZE);
+
 	while (!SCHEME_INTERPRETER_HALT) {
 		printf("~> ");
 		scheme_object * obj = Parser_Parse(&lex);
@@ -89,6 +91,7 @@ int main(int argc, char ** argv) {
 		Scheme_DereferenceObject(&eval_result);
 	}
 
+	Scheme_FreeCallStack();
 	Scheme_FreeStartupEnv();
 	
 	//fclose(file);

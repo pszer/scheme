@@ -22,47 +22,6 @@ scheme_object * Scheme_Special_Define(scheme_object ** objs, scheme_object* env,
 
 		char * def_name = Scheme_GetSymbol(def_list_pair->car)->symbol;
 
-		/*int i;
-		scheme_object * pair_i = def_list_pair->cdr;
-		scheme_symbol * def_args = malloc(sizeof(scheme_symbol) * (argc));
-		for (i = 0; i < argc; ++i) {
-			char type = pair_i->type;
-			if (type != SCHEME_PAIR) {
-				Scheme_SetError("(define (func ...) [body]) : bad argument list");
-				free(def_args);
-				return NULL;
-			}
-
-			scheme_pair * pair_pair = Scheme_GetPair(pair_i);
-			if (!pair_pair->car) {
-				Scheme_SetError("(define (func ...) [body]) : bad argument list");
-				free(def_args);
-				return NULL;
-			}
-
-			char car_type = pair_pair->car->type;
-			if (car_type != SCHEME_SYMBOL) {
-				Scheme_SetError("(define (func ...) [body]) : non-symbol in argument list");
-				free(def_args);
-				return NULL;
-			}
-
-			scheme_symbol * arg_sym = Scheme_GetSymbol(pair_pair->car);
-			def_args[i].symbol = strdup(arg_sym->symbol);
-			pair_i = pair_pair->cdr;
-		}
-
-		int body_count = count - 1;
-		scheme_object ** body = malloc(sizeof(scheme_object *) * body_count);
-		for (i = 0; i < body_count; ++i) {
-			Scheme_ReferenceObject(&body[i], objs[i+1]);
-		}
-
-		scheme_object * closure;
-		Scheme_ReferenceObject(&closure, env);
-
-		scheme_object * lambda = Scheme_CreateLambda(argc, 0, def_args, body_count, body, closure);*/
-
 		scheme_object ** lambda_args = malloc(sizeof(scheme_object*) * count);
 		int i;
 		lambda_args[0] = def_list_pair->cdr;

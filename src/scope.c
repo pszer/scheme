@@ -43,7 +43,11 @@ char LexigraphicCompare(const char * a, const char * b) {
 
 scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size) {
 	scheme_env env;
-	env.parent = parent;
+	if (parent) {
+		Scheme_ReferenceObject(&env.parent, parent);
+	} else {
+		env.parent = NULL;
+	}
 
 	env.defs = NULL;
 	Scheme_ResizeEnv(&env, init_size);
@@ -59,6 +63,10 @@ void Scheme_FreeEnv(scheme_env * env) {
 			Scheme_FreeDefine(env->defs + i);
 		}
 		free(env->defs);
+	}
+
+	if (env->parent) {
+		Scheme_DereferenceObject(&env->parent);
 	}
 }
 
