@@ -20,7 +20,8 @@ scheme_object * Scheme_Special_Define(scheme_object ** objs, scheme_object* env,
 			return NULL;
 		}
 
-		char * def_name = Scheme_GetSymbol(def_list_pair->car)->symbol;
+		symbol * def_sym;
+		ReferenceSymbol(&def_sym, Scheme_GetSymbol(def_list_pair->car)->sym);
 
 		scheme_object ** lambda_args = malloc(sizeof(scheme_object*) * count);
 		int i;
@@ -32,14 +33,14 @@ scheme_object * Scheme_Special_Define(scheme_object ** objs, scheme_object* env,
 		scheme_object * lambda = Scheme_Special_Lambda(lambda_args, env, count);
 		free(lambda_args);
 
-		scheme_env    * env_pointer = Scheme_GetEnvObj(env);
+		scheme_env * env_pointer = Scheme_GetEnvObj(env);
 		if (!env_pointer) {
 			Scheme_SetError("bad environment");
 			return NULL;
 		}
-		Scheme_DefineEnv(env_pointer, Scheme_CreateDefine(strdup(def_name), lambda));
+		Scheme_DefineEnv(env_pointer, Scheme_CreateDefine(def_sym, lambda));
 
-		return Scheme_CreateSymbol(strdup(def_name));
+		return Scheme_CreateSymbolFromSymbol(def_sym);
 	} else // variable definition
 	if (definition_type == SCHEME_SYMBOL) {
 		if (count > 2) {
@@ -50,7 +51,8 @@ scheme_object * Scheme_Special_Define(scheme_object ** objs, scheme_object* env,
 		scheme_object * val;
 		//Scheme_ReferenceObject(&val, Scheme_Eval(objs[1], env));
 		val = Scheme_Eval(objs[1], env);
-		scheme_symbol * sym = Scheme_GetSymbol(objs[0]);
+		symbol * def_sym;
+		ReferenceSymbol(&def_sym, Scheme_GetSymbol(objs[0])->sym);
 
 		scheme_env    * env_pointer = Scheme_GetEnvObj(env);
 		if (!env_pointer) {
@@ -58,8 +60,8 @@ scheme_object * Scheme_Special_Define(scheme_object ** objs, scheme_object* env,
 			return NULL;
 		}
 
-		Scheme_DefineEnv(env_pointer, Scheme_CreateDefine(strdup(sym->symbol), val));
-		return Scheme_CreateSymbol(strdup(sym->symbol));
+		Scheme_DefineEnv(env_pointer, Scheme_CreateDefine(def_sym, val));
+		return Scheme_CreateSymbolFromSymbol(def_sym);
 	}
 
 	Scheme_SetError("(define ...) : malformed syntax");
@@ -79,7 +81,7 @@ scheme_object * Scheme_Special_Lambda(scheme_object ** objs, scheme_object* env,
 		argc = Scheme_ListLength(objs[0]);
 	}
 
-	scheme_symbol * def_args = malloc(sizeof(scheme_symbol) * (argc));
+	symbol ** def_args = malloc(sizeof(symbol) * argc);
 	if (argc) {
 		scheme_object * pair_i = objs[0];
 		for (i = 0; i < argc; ++i) {
@@ -105,7 +107,7 @@ scheme_object * Scheme_Special_Lambda(scheme_object ** objs, scheme_object* env,
 			}
 	
 			scheme_symbol * arg_sym = Scheme_GetSymbol(pair_pair->car);
-			def_args[i].symbol = strdup(arg_sym->symbol);
+			ReferenceSymbol(&def_args[i], arg_sym->sym);
 			pair_i = pair_pair->cdr;
 		}
 	}

@@ -1,20 +1,21 @@
 #include "scope.h"
 #include "scheme.h"
 
-scheme_define Scheme_CreateDefine(char * string, scheme_object * obj) {
+scheme_define Scheme_CreateDefine(symbol * sym, scheme_object * obj) {
 	scheme_define def;
-	def.name = string;
+	def.sym = sym;
 	def.object = obj;
 	return def;
 }
 
-scheme_define Scheme_CreateDefineLiteral(const char * string, scheme_object * obj) {
-	return Scheme_CreateDefine(strdup(string), obj);
+scheme_define Scheme_CreateDefineString(char * string, scheme_object * obj) {
+	symbol * sym = AddSymbol(string);
+	return Scheme_CreateDefine(sym, obj);
 }
 
 void Scheme_FreeDefine(scheme_define * def) {
 	if (!def) return;
-	if (def->name) free(def->name);
+	if (def->sym) DereferenceSymbol(&def->sym);
 	Scheme_DereferenceObject(&def->object);
 }
 
@@ -23,7 +24,7 @@ void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj) {
 	def->object = obj;
 }
 
-char LexigraphicCompare(const char * a, const char * b) {
+/*char LexigraphicCompare(const char * a, const char * b) {
 	const char * c = a, * d = b;
 	while (1) {
 		if (!*c &&  *d) return -1; // ab  < abc
@@ -39,7 +40,7 @@ char LexigraphicCompare(const char * a, const char * b) {
 		++c;
 		++d;
 	};
-}
+}*/
 
 scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size) {
 	scheme_env env;
@@ -105,12 +106,12 @@ void Scheme_DefineEnv(scheme_env * env, scheme_define def) {
 
 		scheme_define * m = l + (r-l)/2;
 
-		int comp = LexigraphicCompare(m->name, def.name);
-		if (comp == 0) {
+		if (m->sym->str == def.sym->str) {
+			DereferenceSymbol(&m->sym);
 			Scheme_OverwriteDefine(m, def.object);
-			free(def.name);
+			m->sym = def.sym;
 			return;
-		} else if (comp == -1) {
+		} else if (m->sym->str < def.sym->str) {
 			l = m + 1;
 		} else {
 			r = m;
@@ -121,7 +122,7 @@ done:
 	++env->count;
 }
 
-scheme_define * Scheme_GetEnv(scheme_env * env, char * name) {
+scheme_define * Scheme_GetEnv(scheme_env * env, symbol * sym) {
 	if (!env) return NULL;
 
 	scheme_define * defs = env->defs;
@@ -131,7 +132,7 @@ scheme_define * Scheme_GetEnv(scheme_env * env, char * name) {
 		if (r == l) {
 			if (env->parent) {
 				scheme_env * deeper_env = Scheme_GetEnvObj(env->parent);
-				return Scheme_GetEnv(deeper_env, name);
+				return Scheme_GetEnv(deeper_env, sym);
 			} else {
 				return NULL;
 			}
@@ -139,10 +140,9 @@ scheme_define * Scheme_GetEnv(scheme_env * env, char * name) {
 
 		scheme_define * m = l + (r-l)/2;
 
-		int comp = LexigraphicCompare(m->name, name);
-		if (comp == 0) {
+		if (m->sym->str == sym->str) {
 			return m;
-		} else if (comp == -1) {
+		} else if (m->sym->str < sym->str) {
 			l = m + 1;
 		} else {
 			r = m;
@@ -156,6 +156,7 @@ void Scheme_DisplayEnv(scheme_env * env) {
 	printf("{ ");
 	for (i = 0; i < env->count; ++i) {
 		scheme_define * def = env->defs + i;
+		printf("%s: ", def->sym->str);
 		Scheme_Display(def->object);
 		if (i != env->count-1) putchar(',');
 		putchar(' ');

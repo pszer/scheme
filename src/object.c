@@ -180,7 +180,7 @@ void Scheme_FreeString(scheme_string * string) {
 
 void Scheme_FreeSymbol(scheme_symbol * symbol) {
 	if (symbol == NULL) return;
-	if (symbol->symbol) free(symbol->symbol);
+	if (symbol->sym) DereferenceSymbol(&symbol->sym);
 	free(symbol);
 }
 
@@ -189,7 +189,7 @@ void Scheme_FreeLambda(scheme_lambda * lambda) {
 	if (lambda->arg_ids) {
 		int i;
 		for (i = 0; i < lambda->arg_count; ++i) {
-			free(lambda->arg_ids[i].symbol);
+			DereferenceSymbol(&lambda->arg_ids[i]);
 		}
 		// the closure environment when freed will free
 		// the argument symbol strings anyway
@@ -315,7 +315,18 @@ scheme_object * Scheme_CreateSymbol(char * symbol_str) {
 	if (!code) return NULL;
 
 	scheme_symbol * symbol = Scheme_GetSymbol(obj);
-	symbol->symbol = symbol_str;
+	symbol->sym = AddSymbol(symbol_str);
+
+	return obj;
+}
+
+scheme_object * Scheme_CreateSymbolFromSymbol(symbol * sym) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_SYMBOL);
+	if (!code) return NULL;
+
+	scheme_symbol * symbol = Scheme_GetSymbol(obj);
+	ReferenceSymbol(&symbol->sym, sym);
 
 	return obj;
 }
@@ -348,7 +359,7 @@ scheme_object * Scheme_CreateSymbolLiteral(const char * symbol_str) {
 	if (!code) return NULL;
 
 	scheme_symbol * symbol = Scheme_GetSymbol(obj);
-	symbol->symbol = strdup(symbol_str);
+	symbol->sym = AddSymbol(strdup(symbol_str));
 
 	return obj;
 
@@ -416,7 +427,7 @@ scheme_object * Scheme_CreateEnvObj(scheme_object * parent, int init_size) {
 	return obj;
 }
 
-scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, int body_count,
+scheme_object * Scheme_CreateLambda(int argc, char dot_args, symbol ** args, int body_count,
 	scheme_object ** body, scheme_object * closure)
 {
 	scheme_object * obj;

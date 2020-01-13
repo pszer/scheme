@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "symbol.h"
 #include "error.h"
 
 typedef struct scheme_env_obj scheme_env_obj;
@@ -78,12 +79,15 @@ typedef struct scheme_string {
 		char * string, * symbol;
 	};
 } scheme_string;
-typedef struct scheme_string scheme_symbol;
+
+typedef struct scheme_symbol {
+	symbol * sym;
+} scheme_symbol;
 
 typedef struct scheme_lambda {
 	int arg_count;
 	char dot_args;
-	scheme_symbol * arg_ids;
+	symbol ** arg_ids;
 
 	int body_count;
 	scheme_object ** body;
@@ -124,6 +128,7 @@ scheme_cfunc   * Scheme_GetCFunc (scheme_object * obj);
  */
 scheme_object * Scheme_CreateNull( void );
 scheme_object * Scheme_CreateSymbol(char * symbol);
+scheme_object * Scheme_CreateSymbolFromSymbol(symbol * symbol);
 scheme_object * Scheme_CreatePair(scheme_object * car, scheme_object * cdr);
 scheme_object * Scheme_CreateBoolean(char val);
 scheme_object * Scheme_CreateInteger(long long integer);
@@ -131,7 +136,7 @@ scheme_object * Scheme_CreateRational(long long numerator, long long denominator
 scheme_object * Scheme_CreateDouble(double value);
 scheme_object * Scheme_CreateString(char * string);
 scheme_object * Scheme_CreateEnvObj(scheme_object * parent, int init_size);
-scheme_object * Scheme_CreateLambda(int argc, char dot_args, scheme_symbol * args, int body_count,
+scheme_object * Scheme_CreateLambda(int argc, char dot_args, symbol ** args, int body_count,
 	scheme_object ** body, scheme_object * closure);
 scheme_object * Scheme_CreateCFunc(int argc, char dot_args, char special_form,
 	scheme_object* (*func)(scheme_object**,scheme_object*,size_t));

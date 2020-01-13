@@ -56,21 +56,15 @@ int main(int argc, char ** argv) {
 		return 0;
 	}*/
 
+	InitSymTable(SYM_TABLE_INIT_SIZE);
+
 	Lexer_LoadFromStream(&lex, stdin);
 	Scheme_DefineStartupEnv();
 
-	/*do {
-		scheme_object * obj = Parser_Parse(&lex);
-		if (!obj) break;
-
-		Scheme_Display(Scheme_Eval(obj, &USER_INITIAL_ENVIRONMENT));
-		printf("\n");
-		scheme_object * car, * cdr, * base = obj;
-
-		Scheme_FreeObject(obj);
-	} while (Lexer_CurrToken(&lex) != TOKEN_EOF);*/
-
 	Scheme_InitCallStack(SCHEME_STACK_SIZE);
+
+	//Scheme_DisplayEnv(SYSTEM_GLOBAL_ENVIRONMENT);
+	//DisplaySymbolTable();
 
 	while (!SCHEME_INTERPRETER_HALT) {
 		printf("~> ");
@@ -93,6 +87,7 @@ int main(int argc, char ** argv) {
 
 	Scheme_FreeCallStack();
 	Scheme_FreeStartupEnv();
+	FreeSymTable();
 	
 	//fclose(file);
 	//Lexer_Free(&lex);

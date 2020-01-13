@@ -9,10 +9,10 @@ scheme_env * SYSTEM_GLOBAL_ENVIRONMENT;
 scheme_env * USER_INITIAL_ENVIRONMENT;
 
 #define CREATESYSDEF(func, name, argc, dotargs, special_form) \
-	Scheme_DefineEnv(SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
+	Scheme_DefineEnv(SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineString(strdup(name), \
 		Scheme_CreateCFunc(argc,dotargs,special_form,func)))
 #define CREATESPEC(func, name, tok) \
-	Scheme_DefineEnv(SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineLiteral(name, \
+	Scheme_DefineEnv(SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineString(strdup(name), \
 		Scheme_CreateCFunc(tok ## _ARGC,tok ## _DOT,1,func)))
 
 void Scheme_DefineStartupEnv( void ) {
@@ -185,7 +185,7 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 		scheme_define * def;
 
 		sym = Scheme_GetSymbol(obj);
-		def = Scheme_GetEnv(env_pointer, sym->symbol);
+		def = Scheme_GetEnv(env_pointer, sym->sym);
 		if (def == NULL) {
 			Scheme_SetError("unbound variable");
 			return NULL;
@@ -220,9 +220,11 @@ scheme_object * Scheme_ApplyCFunc(scheme_cfunc * cfunc, scheme_object ** args, i
 	if (!cfunc) return NULL;
 
 	if (arg_count < cfunc->arg_count) {
+		puts("SHIIIT");
 		Scheme_SetError("bad arg count");
 		return NULL;
 	} else if (arg_count > cfunc->arg_count && !cfunc->dot_args) {
+		printf("%i %i\n", arg_count, cfunc->arg_count);
 		Scheme_SetError("bad arg count");
 		return NULL;
 	}
@@ -270,10 +272,12 @@ scheme_object * Scheme_ApplyLambda(scheme_lambda * lambda, scheme_object ** args
 	Scheme_ReferenceObject(&new_env_obj, lambda->closure);
 	scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
 	for (i = 0; i < arg_count; ++i) {
-		char * arg_name         = strdup(lambda->arg_ids[i].symbol);
+		symbol * sym;
+		ReferenceSymbol(&sym, lambda->arg_ids[i]);
+
 		scheme_object * arg_val;
 		Scheme_ReferenceObject(&arg_val, args[i]);
-		Scheme_DefineEnv(new_env, Scheme_CreateDefine(arg_name, arg_val));
+		Scheme_DefineEnv(new_env, Scheme_CreateDefine(sym, arg_val));
 	}
 
 	scheme_call call;
@@ -315,7 +319,7 @@ void Scheme_Display(scheme_object * obj) {
 	switch (obj->type) {
 	case SCHEME_SYMBOL:
 		sym = Scheme_GetSymbol(obj);
-		printf("%s", sym->symbol);
+		printf("%s", sym->sym->str);
 		break;
 
 	case SCHEME_STRING:
@@ -354,7 +358,7 @@ void Scheme_Display(scheme_object * obj) {
 		int i;
 		printf("λ(");
 		for (i = 0; i < lambda->arg_count; ++i) {
-			printf("%s", lambda->arg_ids[i].symbol);
+			printf("%s", lambda->arg_ids[i]->str);
 			if (i != lambda->arg_count-1) putchar(' ');
 		}
 		putchar(')');
