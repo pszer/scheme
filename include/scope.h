@@ -28,14 +28,8 @@ scheme_define Scheme_CreateDefineString(char * string, scheme_object * obj);
 void Scheme_FreeDefine(scheme_define * scheme_def);
 void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj);
 
-// lexigraphically compares two strings 'a' and 'b'
-// returns
-// -1 if a < b
-//  0 if a = b
-// +1 if a > b
-//char LexigraphicCompare(const char * a, const char * b);
-
-// definitions in a scheme_environment are sorted lexigraphically
+// definitions in a scheme_environment are sorted by integer values of each
+// definitions sym->str pointer
 
 scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size);
 void Scheme_FreeEnv(scheme_env * env);

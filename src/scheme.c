@@ -30,6 +30,11 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESYSDEF(__Scheme_CallSub__, "-", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallMul__, "*", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallDiv__, "/", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallAEqual__, "=", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallALessThan__, "<", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallALessThanEqual__, "<=", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallAGreaterThan__, ">", 1, 1, 0);
+	CREATESYSDEF(__Scheme_CallAGreaterThanEqual__, ">=", 1, 1, 0);
 	CREATESYSDEF(__Exit__, "exit", 0, 0, 0);
 }
 

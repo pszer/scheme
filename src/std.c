@@ -97,6 +97,11 @@ __CALL_ARITHMETIC(__Scheme_CallAdd__, __Scheme_Add__);
 __CALL_ARITHMETIC(__Scheme_CallSub__, __Scheme_Sub__);
 __CALL_ARITHMETIC(__Scheme_CallMul__, __Scheme_Mul__);
 __CALL_ARITHMETIC(__Scheme_CallDiv__, __Scheme_Div__);
+__CALL_ARITHMETIC(__Scheme_CallAEqual__, __Scheme_Arithmetic_Equal__);
+__CALL_ARITHMETIC(__Scheme_CallALessThan__, __Scheme_Arithmetic_LessThan__);
+__CALL_ARITHMETIC(__Scheme_CallALessThanEqual__, __Scheme_Arithmetic_LessThanEqual__);
+__CALL_ARITHMETIC(__Scheme_CallAGreaterThan__, __Scheme_Arithmetic_GreaterThan__);
+__CALL_ARITHMETIC(__Scheme_CallAGreaterThanEqual__, __Scheme_Arithmetic_GreaterThanEqual__);
 
 scheme_object * __Scheme_Add__(scheme_number * nums, int count) {
 	scheme_object * result;
@@ -237,4 +242,237 @@ scheme_object * __Scheme_Div__(scheme_number * nums, int count) {
 	if (r_num->type == NUMBER_RATIONAL)
 		__NormaliseRational__(r_num);
 	return result;
+}
+
+scheme_object * __Scheme_Arithmetic_Equal__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_BOOLEAN);
+
+	char bool_val = 1;
+
+	scheme_number * left    = nums;
+	scheme_number * end_num = nums + count - 1;
+
+	while (left < end_num) {
+		scheme_number * right = left + 1;
+
+		__Math_Complement__(left, right);
+
+		switch (left->type) {
+		case NUMBER_INTEGER:
+			if (left->integer_val != right->integer_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_DOUBLE:
+			if (left->double_val != right->double_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_RATIONAL:
+			if (left->numerator != right->numerator ||
+			    left->denominator != right->denominator)
+			{
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		}
+
+		++left;
+	}
+
+finish:
+	Scheme_GetBoolean(result)->val = bool_val;
+	return result;
+}
+
+scheme_object * __Scheme_Arithmetic_LessThan__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_BOOLEAN);
+
+	char bool_val = 1;
+
+	scheme_number * left    = nums;
+	scheme_number * end_num = nums + count - 1;
+
+	while (left < end_num) {
+		scheme_number * right = left + 1;
+
+		__Math_Complement__(left, right);
+
+		switch (left->type) {
+		case NUMBER_INTEGER:
+			if (left->integer_val >= right->integer_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_DOUBLE:
+			if (left->double_val >= right->double_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_RATIONAL: {
+			long long l = left->numerator * right->denominator;
+			long long r = right->numerator * left->denominator;
+			if (l >= r)
+			{
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+			}
+		}
+
+		++left;
+	}
+
+finish:
+	Scheme_GetBoolean(result)->val = bool_val;
+	return result;
+
+}
+
+scheme_object * __Scheme_Arithmetic_LessThanEqual__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_BOOLEAN);
+
+	char bool_val = 1;
+
+	scheme_number * left    = nums;
+	scheme_number * end_num = nums + count - 1;
+
+	while (left < end_num) {
+		scheme_number * right = left + 1;
+
+		__Math_Complement__(left, right);
+
+		switch (left->type) {
+		case NUMBER_INTEGER:
+			if (left->integer_val > right->integer_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_DOUBLE:
+			if (left->double_val > right->double_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_RATIONAL: {
+			long long l = left->numerator * right->denominator;
+			long long r = right->numerator * left->denominator;
+			if (l > r)
+			{
+				bool_val = 0;
+				goto finish;
+			}
+			break; }
+		}
+
+		++left;
+	}
+
+finish:
+	Scheme_GetBoolean(result)->val = bool_val;
+	return result;
+}
+
+scheme_object * __Scheme_Arithmetic_GreaterThan__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_BOOLEAN);
+
+	char bool_val = 1;
+
+	scheme_number * left    = nums;
+	scheme_number * end_num = nums + count - 1;
+
+	while (left < end_num) {
+		scheme_number * right = left + 1;
+
+		__Math_Complement__(left, right);
+
+		switch (left->type) {
+		case NUMBER_INTEGER:
+			if (left->integer_val <= right->integer_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_DOUBLE:
+			if (left->double_val <= right->double_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_RATIONAL: {
+			long long l = left->numerator * right->denominator;
+			long long r = right->numerator * left->denominator;
+			if (l <= r)
+			{
+				bool_val = 0;
+				goto finish;
+			}
+			break; }
+		}
+
+		++left;
+	}
+
+finish:
+	Scheme_GetBoolean(result)->val = bool_val;
+	return result;
+
+}
+
+scheme_object * __Scheme_Arithmetic_GreaterThanEqual__(scheme_number * nums, int count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_BOOLEAN);
+
+	char bool_val = 1;
+
+	scheme_number * left    = nums;
+	scheme_number * end_num = nums + count - 1;
+
+	while (left < end_num) {
+		scheme_number * right = left + 1;
+
+		__Math_Complement__(left, right);
+
+		switch (left->type) {
+		case NUMBER_INTEGER:
+			if (left->integer_val < right->integer_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_DOUBLE:
+			if (left->double_val < right->double_val) {
+				bool_val = 0;
+				goto finish;
+			}
+			break;
+		case NUMBER_RATIONAL: {
+			long long l = left->numerator * right->denominator;
+			long long r = right->numerator * left->denominator;
+			if (l < r)
+			{
+				bool_val = 0;
+				goto finish;
+			}
+			break; }
+		}
+
+		++left;
+	}
+
+finish:
+	Scheme_GetBoolean(result)->val = bool_val;
+	return result;
+
 }

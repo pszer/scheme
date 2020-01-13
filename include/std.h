@@ -21,3 +21,14 @@ scheme_object * __Scheme_Add__(scheme_number * nums, int count);
 scheme_object * __Scheme_Sub__(scheme_number * nums, int count);
 scheme_object * __Scheme_Mul__(scheme_number * nums, int count);
 scheme_object * __Scheme_Div__(scheme_number * nums, int count);
+
+scheme_object * __Scheme_CallAEqual__(scheme_object ** objs, scheme_object * env, size_t count);
+scheme_object * __Scheme_CallALessThan__(scheme_object ** objs, scheme_object * env, size_t count);
+scheme_object * __Scheme_CallALessThanEqual__(scheme_object ** objs, scheme_object * env, size_t count);
+scheme_object * __Scheme_CallAGreaterThan__(scheme_object ** objs, scheme_object * env, size_t count);
+scheme_object * __Scheme_CallAGreaterThanEqual__(scheme_object ** objs, scheme_object * env, size_t count);
+scheme_object * __Scheme_Arithmetic_Equal__(scheme_number * nums, int count);
+scheme_object * __Scheme_Arithmetic_LessThan__(scheme_number * nums, int count);
+scheme_object * __Scheme_Arithmetic_LessThanEqual__(scheme_number * nums, int count);
+scheme_object * __Scheme_Arithmetic_GreaterThan__(scheme_number * nums, int count);
+scheme_object * __Scheme_Arithmetic_GreaterThanEqual__(scheme_number * nums, int count);

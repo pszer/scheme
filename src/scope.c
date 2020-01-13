@@ -24,24 +24,6 @@ void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj) {
 	def->object = obj;
 }
 
-/*char LexigraphicCompare(const char * a, const char * b) {
-	const char * c = a, * d = b;
-	while (1) {
-		if (!*c &&  *d) return -1; // ab  < abc
-		if ( *c && !*d) return  1; // abc > ab
-		if (!*c && !*d) return  0; // abc = abc
-
-		if (*c < *d) return -1; // a < b
-		if (*c > *d) return  1; // b > a
-
-		// *c==*d if no checks above happened
-
-		// check next character
-		++c;
-		++d;
-	};
-}*/
-
 scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size) {
 	scheme_env env;
 	if (parent) {
