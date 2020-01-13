@@ -44,8 +44,11 @@ int  Scheme_PushCallStack(scheme_call call); // returns 1 if tail call push
 scheme_object * Scheme_PopCallStack(void);
 char Scheme_CanTailCallLambda(scheme_lambda * lambda);
 
+void Scheme_DisplayCallStack(void);
+
 //scheme_call Scheme_GetLambdaCall(scheme_lambda * lambda, scheme_object * obj, scheme_object * env);
 
+scheme_object * Scheme_EvalSExpr(scheme_object * obj, scheme_object * env);
 scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env);
 scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int arg_count, scheme_object * env);
 scheme_object * Scheme_ApplyCFunc(scheme_cfunc * cfunc, scheme_object ** args, int arg_count, scheme_object * env);

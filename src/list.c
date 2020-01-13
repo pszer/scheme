@@ -5,7 +5,17 @@ int Scheme_IsPair(scheme_object * obj) {
 }
 
 int Scheme_IsNull(scheme_object * obj) {
-	return obj && obj->type == SCHEME_NULL;
+	if (!obj || obj->type == SCHEME_NULL)
+		return 1;
+	if (obj->type == SCHEME_PAIR) {
+		scheme_pair * p = Scheme_GetPair(obj);
+		if ((!p->car || p->car->type==SCHEME_NULL) &&
+		    (!p->cdr || p->cdr->type==SCHEME_NULL))
+		{
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int Scheme_ListLength(scheme_object * obj) {

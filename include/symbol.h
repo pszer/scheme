@@ -15,10 +15,10 @@ typedef struct symbol {
 	int ref_count;
 } symbol;
 
-symbol CreateSymbol(char * str);
-void   FreeSymbol(symbol * sym);
+symbol* CreateSymbol(char * str);
+void    FreeSymbol(symbol * sym);
 
-extern symbol * sym_table;
+extern symbol ** sym_table;
 extern size_t sym_table_count;
 extern size_t sym_table_size;
 
@@ -29,7 +29,7 @@ int ResizeSymTable(size_t new_size);
 void FreeSymTable(void);
 
 void EraseSymTable(size_t index);
-size_t GetSymTableIndex(symbol * sym);
+int GetSymTableIndex(symbol * sym);
 
 symbol * GetSymbol(const char * str);
 

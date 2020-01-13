@@ -27,10 +27,12 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESPEC(Scheme_Special_If, "if", SPEC_IF);
 
 	CREATESYSDEF(__Scheme_cons__, "cons", 2, 0, 0);
-	CREATESYSDEF(__Scheme_car__, "car", 1, 0, 0);
-	CREATESYSDEF(__Scheme_cdr__, "cdr", 1, 0, 0);
+	CREATESYSDEF(__Scheme_car__,  "car", 1, 0, 0);
+	CREATESYSDEF(__Scheme_cdr__,  "cdr", 1, 0, 0);
+	CREATESYSDEF(__Scheme_List__, "list", 0, 1, 0);
 
 	CREATESYSDEF(__Scheme_CallDisplay__, "display", 1, 0, 0);
+	CREATESYSDEF(__Scheme_CallNewline__, "newline", 0, 0, 0);
 
 	CREATESYSDEF(__Scheme_CallAdd__, "+", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallSub__, "-", 1, 1, 0);
@@ -42,7 +44,8 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESYSDEF(__Scheme_CallAGreaterThan__, ">", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallAGreaterThanEqual__, ">=", 1, 1, 0);
 
-	CREATESYSDEF(__Pred_eq__, "eq?", 2, 0, 0);
+	CREATESYSDEF(__Pred_eq__,   "eq?", 2, 0, 0);
+	CREATESYSDEF(__Pred_null__, "null?", 1, 0, 0);
 
 	CREATESYSDEF(__Exit__, "exit", 0, 0, 0);
 }
@@ -140,6 +143,28 @@ char Scheme_CanTailCallLambda(scheme_lambda * lambda) {
 	return !call->is_cfunc_call && call->proc == lambda;
 }
 
+void Scheme_DisplayCallStack(void) {
+	if (call_stack_end == call_stack) return;
+	puts("-- STACK TRACE --");
+
+	scheme_call * call = call_stack_end-1;
+	while (1) {
+		if (call->is_cfunc_call) {
+			puts("<cfunc>");
+		} else {
+			scheme_object temp;
+			temp.type = SCHEME_LAMBDA;
+			temp.payload = call->proc;
+			Scheme_Display(&temp);
+			Scheme_Newline();
+		}
+
+		if (call == call_stack)
+			break;
+		--call;
+	}
+}
+
 scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 	if (obj == NULL) return NULL;
 
@@ -174,6 +199,16 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 				array[i] = Scheme_Eval(p->car, env);
 			else
 				array[i] = p->car;
+
+			if (error_str) {
+				int j;
+				for (j = 0; j < i && !is_special_form; ++j) {
+					Scheme_DereferenceObject(array + j);
+				}
+
+				return NULL;
+			}
+
 			node = p->cdr;
 		}
 
@@ -205,7 +240,9 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 			return NULL;
 		}
 
-		return Scheme_Eval(def->object, env);
+		scheme_object * ref;
+		Scheme_ReferenceObject(&ref, def->object);
+		return ref;
 		}
 	default: {
 		scheme_object * ref;
@@ -225,6 +262,8 @@ scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int ar
 		else
 			return Scheme_ApplyCFuncSpecial(cfunc, args, arg_count, env);
 	} else {
+		Scheme_Display(func);
+		Scheme_Newline();
 		Scheme_SetError("tried to call non-applicable object");
 		return NULL;
 	}
@@ -381,6 +420,10 @@ void Scheme_Display(scheme_object * obj) {
 				putchar(' ');
 		}
 	} break;
+
+	case SCHEME_CFUNC:
+		printf("<cfunc>");
+		break;
 
 	case SCHEME_ENV:
 		printf("<env>");

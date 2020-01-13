@@ -6,6 +6,24 @@ scheme_object * __Exit__(scheme_object ** objs, scheme_object * env, size_t coun
 	return NULL;
 }
 
+scheme_object * __Scheme_List__(scheme_object ** objs, scheme_object * env, size_t count) {
+	if (count == 0) {
+		return Scheme_CreatePairWithoutRef(NULL, NULL);
+	}
+
+	scheme_object * base = Scheme_CreatePair(objs[count-1], NULL);
+
+	int i;
+	for (i = count-2; i >= 0; --i) {
+		scheme_object * car;
+		Scheme_ReferenceObject(&car, objs[i]);
+
+		base = Scheme_CreatePairWithoutRef(car, base);
+	}
+
+	return base;
+}
+
 scheme_object * __Scheme_cons__(scheme_object ** objs, scheme_object * env, size_t count) {
 	return Scheme_CreatePair(objs[0], objs[1]);
 }
@@ -58,6 +76,14 @@ scheme_object * __Pred_eq__(scheme_object ** objs, scheme_object * env, size_t c
 		}
 	}
 
+	return result;
+}
+
+scheme_object * __Pred_null__(scheme_object ** objs, scheme_object * env, size_t count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_BOOLEAN);
+	scheme_boolean * boolean = Scheme_GetBoolean(result);
+	boolean->val = Scheme_IsNull(objs[0]);
 	return result;
 }
 
@@ -534,5 +560,10 @@ finish:
 
 scheme_object * __Scheme_CallDisplay__(scheme_object ** objs, scheme_object * env, size_t count) {
 	Scheme_Display(objs[0]);
+	return NULL;
+}
+
+scheme_object * __Scheme_CallNewline__(scheme_object ** objs, scheme_object * env, size_t count) {
+	Scheme_Newline();
 	return NULL;
 }
