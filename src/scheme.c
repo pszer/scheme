@@ -25,6 +25,7 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESPEC(Scheme_Special_Define, "define", SPEC_DEFINE);
 	CREATESPEC(Scheme_Special_Lambda, "lambda", SPEC_LAMBDA);
 	CREATESPEC(Scheme_Special_If, "if", SPEC_IF);
+	CREATESPEC(Scheme_Special_Quote, "quote", SPEC_QUOTE);
 
 	CREATESYSDEF(__Scheme_cons__, "cons", 2, 0, 0);
 	CREATESYSDEF(__Scheme_car__,  "car", 1, 0, 0);

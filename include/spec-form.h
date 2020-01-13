@@ -13,3 +13,7 @@ scheme_object * Scheme_Special_Lambda(scheme_object ** objs, scheme_object* env,
 #define SPEC_IF_ARGC 3
 #define SPEC_IF_DOT 0
 scheme_object * Scheme_Special_If(scheme_object ** objs, scheme_object* env, size_t count);
+
+#define SPEC_QUOTE_ARGC 1
+#define SPEC_QUOTE_DOT 0
+scheme_object * Scheme_Special_Quote(scheme_object ** objs, scheme_object* env, size_t count);

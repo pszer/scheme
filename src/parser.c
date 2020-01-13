@@ -19,6 +19,8 @@ scheme_object * Parser_ParseExpression(struct lexer * lex) {
 		return Parser_ParseString(lex);
 	case '(':
 		return Parser_ParseList(lex);
+	case '\'':
+		return Parser_ParseQuote(lex);
 	default:
 		Scheme_SetError("unexpected token");
 		return NULL;
@@ -86,7 +88,20 @@ scheme_object * Parser_ParseList(struct lexer * lex) {
 		next_pair = pair->cdr;
 	}
 
-	//Lexer_NextToken(lex); // eat ')' token
-
 	return base_pair;
+}
+
+scheme_object * Parser_ParseQuote  (struct lexer * lex) {
+	Lexer_NextToken(lex); // eat ' token
+
+	scheme_object * to_quote = Parser_ParseExpression(lex);
+	if (to_quote == NULL)
+		return NULL;
+
+	scheme_object * quote_symbol = Scheme_CreateSymbolLiteral("quote");
+
+	scheme_object * p2 = Scheme_CreatePairWithoutRef(to_quote, NULL);
+	scheme_object * p1 = Scheme_CreatePairWithoutRef(quote_symbol, p2);
+
+	return p1;
 }

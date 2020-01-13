@@ -136,3 +136,10 @@ scheme_object * Scheme_Special_If(scheme_object ** objs, scheme_object* env, siz
 		return Scheme_Eval(objs[2], env);
 	}
 }
+
+scheme_object * Scheme_Special_Quote(scheme_object ** objs, scheme_object* env, size_t count) {
+	scheme_object * o;
+	Scheme_ReferenceObject(&o, objs[0]);
+	return o;
+
+}

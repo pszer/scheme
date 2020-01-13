@@ -3,7 +3,7 @@
 
 char * error_str = NULL ;
 char * Scheme_GetError(void) {
-	Scheme_DisplayCallStack();
+	//Scheme_DisplayCallStack();
 
 	char * temp = error_str;
 	error_str = NULL;
