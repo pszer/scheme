@@ -61,7 +61,6 @@ int Scheme_PushCallStack(scheme_call call) {
 			do_tail_call = (call.proc == last_call->proc);
 
 		if (do_tail_call) {
-			printf("do_tail_call\n");
 			scheme_env * last_call_env = Scheme_GetEnvObj(last_call->env);
 			scheme_env * this_call_env = Scheme_GetEnvObj(call.env);
 			this_call_env->parent = last_call_env->parent;
@@ -111,7 +110,6 @@ tail_call:
 		if (return_val == &DO_TAIL_CALL) {
 			goto tail_call;
 		} else {
-			printf("got there %lli\n", (long long)Scheme_GetEnvObj(call->env));
 			Scheme_DereferenceObject(&call->env);
 			return return_val;
 		}

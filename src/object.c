@@ -62,10 +62,10 @@ void Scheme_DereferenceObject(scheme_object ** pointer) {
 	if (!pointer) return;
 
 	if (*pointer) {
-		if (pointer[0]->type == SCHEME_ENV) {
+		/*if (pointer[0]->type == SCHEME_ENV) {
 			Scheme_Display(*pointer);
 			printf("deref ref count : %i @ %lli\n", (*pointer)->ref_count, (long long)Scheme_GetEnvObj(*pointer));
-		}
+		}*/
 		(*pointer)->ref_count -= 1;
 		if ((*pointer)->ref_count == 0) {
 			Scheme_FreeObject(*pointer);
@@ -209,7 +209,6 @@ void Scheme_FreeLambda(scheme_lambda * lambda) {
 }
 
 void Scheme_FreeEnvObj(scheme_env * env) {
-	printf("-- FREE ENV OBJ -- %lli\n", (long long)env);
 	if (env == NULL) return;
 	Scheme_FreeEnv(env);
 	free(env);
@@ -413,8 +412,6 @@ scheme_object * Scheme_CreateEnvObj(scheme_object * parent, int init_size) {
 
 	scheme_env * env = Scheme_GetEnvObj(obj);
 	*env = Scheme_CreateEnv(parent, init_size);
-
-	printf("-- MAKE ENV OBJ -- %lli\n", (long long)env);
 
 	return obj;
 }
