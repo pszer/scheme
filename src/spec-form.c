@@ -208,3 +208,70 @@ scheme_object * Scheme_Special_Cond(scheme_object ** objs, scheme_object* env, s
 
 	return NULL;
 }
+
+scheme_object * Scheme_Special_Let(scheme_object ** objs, scheme_object* env, size_t count) {
+	scheme_object * var_list_obj = objs[0];
+
+	if (Scheme_IsNull(var_list_obj)) {
+		Scheme_SetError("(let ((symbol value) ...) [clauses ...]) : malformed syntax");
+		return NULL;
+	}
+
+	int var_list_len = Scheme_ListLength(var_list_obj);
+
+	scheme_object * new_env_obj = Scheme_CreateEnvObj(env, var_list_len);
+	scheme_env    * new_env     = Scheme_GetEnvObj(new_env_obj);
+
+	int i;
+	for (i = 0; i < var_list_len; ++i) {
+		if (var_list_obj->type != SCHEME_PAIR) {
+			Scheme_SetError("(let ((symbol value) ...) [clauses ...]) : malformed syntax");
+			return NULL;
+		}
+
+		scheme_pair * var_list_pair = Scheme_GetPair(var_list_obj);
+		scheme_object * var_obj = var_list_pair->car;
+		if (Scheme_IsNull(var_obj) || var_obj->type != SCHEME_PAIR) {
+			Scheme_SetError("(let ((symbol value) ...) [clauses ...]) : malformed syntax");
+			Scheme_DereferenceObject(&new_env_obj);
+			return NULL;
+		}
+
+		scheme_pair * var_pair = Scheme_GetPair(var_obj);
+
+		scheme_object * var_sym  = var_pair->car,
+		              * var_expr = var_pair->cdr;
+
+		if (Scheme_IsNull(var_expr) || var_expr->type != SCHEME_PAIR) {
+			Scheme_SetError("(let ((symbol value) ...) [clauses ...]) : malformed syntax");
+			Scheme_DereferenceObject(&new_env_obj);
+			return NULL;
+		}
+		var_expr = Scheme_GetPair(var_expr)->car;
+
+		if (Scheme_IsNull(var_sym) || var_sym->type != SCHEME_SYMBOL) {
+			Scheme_SetError("(let ((symbol value) ...) [clauses ...]) : malformed syntax");
+			Scheme_DereferenceObject(&new_env_obj);
+			return NULL;
+		}
+
+		symbol * sym;
+		scheme_object * val = Scheme_Eval(var_expr, env);
+		ReferenceSymbol(&sym, Scheme_GetSymbol(var_sym)->sym);
+
+		Scheme_DefineEnv(new_env, Scheme_CreateDefine(sym, val));
+	}
+
+	int end = count-1;
+	scheme_object * return_val = NULL;
+	for (i = 1; i < count; ++i) {
+		scheme_object * val = Scheme_Eval(objs[i], new_env_obj);
+		if (i == end)
+			return_val = val;
+		else
+			Scheme_DereferenceObject(&val);
+	}
+
+	Scheme_DereferenceObject(&new_env_obj);
+	return return_val;
+}

@@ -21,3 +21,7 @@ scheme_object * Scheme_Special_Quote(scheme_object ** objs, scheme_object* env, 
 #define SPEC_COND_ARGC 0
 #define SPEC_COND_DOT 1
 scheme_object * Scheme_Special_Cond(scheme_object ** objs, scheme_object* env, size_t count);
+
+#define SPEC_LET_ARGC 2
+#define SPEC_LET_DOT 1
+scheme_object * Scheme_Special_Let(scheme_object ** objs, scheme_object* env, size_t count);
