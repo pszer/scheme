@@ -267,7 +267,9 @@ scheme_object * Scheme_ApplyLambda(scheme_lambda * lambda, scheme_object ** args
 	}
 
 	int i;
-	scheme_object * new_env_obj = Scheme_CreateEnvObj(env, lambda->arg_count+1);
+	//scheme_object * new_env_obj = Scheme_CreateEnvObj(env, lambda->arg_count+1);
+	scheme_object * new_env_obj;
+	Scheme_ReferenceObject(&new_env_obj, lambda->closure);
 	scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
 	for (i = 0; i < arg_count; ++i) {
 		char * arg_name         = strdup(lambda->arg_ids[i].symbol);
