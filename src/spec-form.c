@@ -143,3 +143,68 @@ scheme_object * Scheme_Special_Quote(scheme_object ** objs, scheme_object* env, 
 	return o;
 
 }
+
+scheme_object * Scheme_Special_Cond(scheme_object ** objs, scheme_object* env, size_t count) {
+	size_t i;
+
+	for (i = 0; i < count; ++i) {
+		scheme_object * base_obj = objs[i];
+		
+		if (!base_obj || base_obj->type != SCHEME_PAIR) {
+			Scheme_SetError("(cond (predicate [clauses ...]) ...) : malformed syntax");
+			return NULL;
+		}
+
+		scheme_pair * base_pair = Scheme_GetPair(base_obj);
+
+		char predicate_bool = 0;
+
+		scheme_object * predicate_expr = base_pair->car;
+		scheme_object * clause_expr    = base_pair->cdr;
+		scheme_object * predicate_val  = NULL;
+
+		// check if special 'else' keyword
+		if (!Scheme_IsNull(predicate_expr) && predicate_expr->type == SCHEME_SYMBOL
+			&& Scheme_SymbolEq(Scheme_GetSymbol(predicate_expr)->sym, ELSE_SYMBOL))
+		{
+			predicate_bool = 1;
+		} else {
+			predicate_val = Scheme_Eval(predicate_expr, env);
+
+			if (error_str) {
+				return NULL;
+			}
+
+			predicate_bool = Scheme_BoolTest(predicate_val);
+		}
+
+		if (!predicate_bool) {
+			Scheme_DereferenceObject(&predicate_val);
+			continue;
+		}
+
+		if (Scheme_IsNull(clause_expr))
+			return predicate_val;
+		else
+			Scheme_DereferenceObject(&predicate_val);
+
+		while (1) {
+			if (clause_expr->type != SCHEME_PAIR) {
+				Scheme_SetError("(cond (predicate [clauses ...]) ...) : malformed syntax");
+				return NULL;
+			}
+
+			scheme_pair * clause_pair = Scheme_GetPair(clause_expr);
+			scheme_object * clause_val = Scheme_Eval(clause_pair->car, env);
+
+			if (Scheme_IsNull(clause_pair->cdr)) {
+				return clause_val;
+			} else {
+				Scheme_DereferenceObject(&clause_val);
+				clause_expr = clause_pair->cdr;
+			}
+		}
+	}
+
+	return NULL;
+}

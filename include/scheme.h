@@ -15,6 +15,10 @@ extern scheme_env * SYSTEM_GLOBAL_ENVIRONMENT;
 extern scheme_env * USER_INITIAL_ENVIRONMENT;
 extern int SCHEME_INTERPRETER_HALT;
 
+extern symbol * ELSE_SYMBOL;
+
+int Scheme_SymbolEq(symbol * a, symbol * b);
+
 void Scheme_DefineStartupEnv( void );
 void Scheme_FreeStartupEnv( void );
 

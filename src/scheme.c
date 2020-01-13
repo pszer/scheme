@@ -8,6 +8,12 @@ scheme_object * USER_INITIAL_ENVIRONMENT_OBJ;
 scheme_env * SYSTEM_GLOBAL_ENVIRONMENT;
 scheme_env * USER_INITIAL_ENVIRONMENT;
 
+symbol * ELSE_SYMBOL = NULL;
+
+int Scheme_SymbolEq(symbol * a, symbol * b) {
+	return a && b && (a->str == b->str);
+}
+
 #define CREATESYSDEF(func, name, argc, dotargs, special_form) \
 	Scheme_DefineEnv(SYSTEM_GLOBAL_ENVIRONMENT, Scheme_CreateDefineString(strdup(name), \
 		Scheme_CreateCFunc(argc,dotargs,special_form,func)))
@@ -26,6 +32,7 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESPEC(Scheme_Special_Lambda, "lambda", SPEC_LAMBDA);
 	CREATESPEC(Scheme_Special_If, "if", SPEC_IF);
 	CREATESPEC(Scheme_Special_Quote, "quote", SPEC_QUOTE);
+	CREATESPEC(Scheme_Special_Cond, "cond", SPEC_COND);
 
 	CREATESYSDEF(__Scheme_cons__, "cons", 2, 0, 0);
 	CREATESYSDEF(__Scheme_car__,  "car", 1, 0, 0);
@@ -49,6 +56,8 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESYSDEF(__Pred_null__, "null?", 1, 0, 0);
 
 	CREATESYSDEF(__Exit__, "exit", 0, 0, 0);
+
+	ELSE_SYMBOL = AddSymbol(strdup("else"));
 }
 
 void Scheme_FreeStartupEnv( void ) {
@@ -451,5 +460,5 @@ char Scheme_BoolTest(scheme_object * obj) {
 		}
 	} 
 
-	return 0;
+	return 1;
 }
