@@ -130,6 +130,7 @@ scheme_object * Scheme_CreateNull( void );
 scheme_object * Scheme_CreateSymbol(char * symbol);
 scheme_object * Scheme_CreateSymbolFromSymbol(symbol * symbol);
 scheme_object * Scheme_CreatePair(scheme_object * car, scheme_object * cdr);
+scheme_object * Scheme_CreatePairWithoutRef(scheme_object * car, scheme_object * cdr);
 scheme_object * Scheme_CreateBoolean(char val);
 scheme_object * Scheme_CreateInteger(long long integer);
 scheme_object * Scheme_CreateRational(long long numerator, long long denominator);

@@ -69,7 +69,7 @@ scheme_object * Parser_ParseList(struct lexer * lex) {
 
 	scheme_object * first_object = Parser_ParseExpression(lex);
 	
-	scheme_object * base_pair = Scheme_CreatePair(first_object, NULL);
+	scheme_object * base_pair = Scheme_CreatePairWithoutRef(first_object, NULL);
 	scheme_object * next_pair = base_pair;
 	
 	while (Lexer_NextToken(lex) != ')') {
@@ -81,7 +81,7 @@ scheme_object * Parser_ParseList(struct lexer * lex) {
 		scheme_object * new_object = Parser_ParseExpression(lex);
 
 		scheme_pair * pair = (scheme_pair *)next_pair->payload;
-		pair->cdr = Scheme_CreatePair(new_object, NULL);
+		pair->cdr = Scheme_CreatePairWithoutRef(new_object, NULL);
 
 		next_pair = pair->cdr;
 	}

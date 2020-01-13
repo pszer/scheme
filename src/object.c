@@ -143,6 +143,7 @@ void Scheme_FreeObjectRecur(scheme_object * object) {
 	if (object->type != SCHEME_PAIR) {
 		Scheme_DereferenceObject(&object);
 	} else {
+		//Scheme_DereferenceObject(&object);
 		object->ref_count -= 1;
 		if (object->ref_count <= 0) {
 			Scheme_FreePair(object->payload);
@@ -303,10 +304,27 @@ scheme_object * Scheme_CreatePair(scheme_object * car, scheme_object * cdr) {
 	if (!code) return NULL;
 
 	scheme_pair * pair = Scheme_GetPair(obj);
+	Scheme_ReferenceObject(&pair->car, car);
+	Scheme_ReferenceObject(&pair->cdr, cdr);
+
+	//pair->car = car;
+	//pair->cdr = cdr;
+
+	return obj;
+}
+
+scheme_object * Scheme_CreatePairWithoutRef(scheme_object * car, scheme_object * cdr) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_PAIR);
+	if (!code) return NULL;
+
+	scheme_pair * pair = Scheme_GetPair(obj);
+
 	pair->car = car;
 	pair->cdr = cdr;
 
 	return obj;
+
 }
 
 scheme_object * Scheme_CreateSymbol(char * symbol_str) {

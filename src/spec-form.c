@@ -49,8 +49,8 @@ scheme_object * Scheme_Special_Define(scheme_object ** objs, scheme_object* env,
 		}
 
 		scheme_object * val;
-		//Scheme_ReferenceObject(&val, Scheme_Eval(objs[1], env));
-		val = Scheme_Eval(objs[1], env);
+		Scheme_ReferenceObject(&val, objs[1]);
+		//val = Scheme_Eval(objs[1], env);
 		symbol * def_sym;
 		ReferenceSymbol(&def_sym, Scheme_GetSymbol(objs[0])->sym);
 

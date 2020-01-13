@@ -6,6 +6,61 @@ scheme_object * __Exit__(scheme_object ** objs, scheme_object * env, size_t coun
 	return NULL;
 }
 
+scheme_object * __Scheme_cons__(scheme_object ** objs, scheme_object * env, size_t count) {
+	return Scheme_CreatePair(objs[0], objs[1]);
+}
+
+scheme_object * __Scheme_car__(scheme_object ** objs, scheme_object * env, size_t count) {
+	if (!objs[0] || objs[0]->type != SCHEME_PAIR) {
+		Scheme_SetError("car on non-pair object");
+		return NULL;
+	}
+
+	scheme_object * car;
+	Scheme_ReferenceObject(&car, Scheme_Car(objs[0]));
+	return car;
+}
+
+scheme_object * __Scheme_cdr__(scheme_object ** objs, scheme_object * env, size_t count) {
+	if (!objs[0] || objs[0]->type != SCHEME_PAIR) {
+		Scheme_SetError("car on non-pair object");
+		return NULL;
+	}
+
+	scheme_object * cdr;
+	Scheme_ReferenceObject(&cdr, Scheme_Cdr(objs[0]));
+	return cdr;
+}
+
+scheme_object * __Pred_eq__(scheme_object ** objs, scheme_object * env, size_t count) {
+	scheme_object * result;
+	Scheme_AllocateObject(&result, SCHEME_BOOLEAN);
+	scheme_boolean * boolean = Scheme_GetBoolean(result);
+
+	scheme_object * a = objs[0];
+	scheme_object * b = objs[0];
+
+	char a_is_sym = a && a->type == SCHEME_SYMBOL;
+	char b_is_sym = b && b->type == SCHEME_SYMBOL;
+
+	if (a_is_sym != b_is_sym) {
+		boolean->val = 0;
+	} else {
+		if (a_is_sym && b_is_sym) {
+			scheme_symbol * a_sym = Scheme_GetSymbol(a);
+			scheme_symbol * b_sym = Scheme_GetSymbol(b);
+			boolean->val = a_sym->sym->str == b_sym->sym->str;
+		} else {
+			if (a && b)
+				boolean->val = a->payload == b->payload;
+			else
+				boolean->val = 0;
+		}
+	}
+
+	return result;
+}
+
 void __Math_Complement__(scheme_number * left, scheme_number * right) {
 	int ltype = left->type;
 	int rtype = right->type;
@@ -475,4 +530,9 @@ finish:
 	Scheme_GetBoolean(result)->val = bool_val;
 	return result;
 
+}
+
+scheme_object * __Scheme_CallDisplay__(scheme_object ** objs, scheme_object * env, size_t count) {
+	Scheme_Display(objs[0]);
+	return NULL;
 }

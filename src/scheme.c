@@ -26,6 +26,12 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESPEC(Scheme_Special_Lambda, "lambda", SPEC_LAMBDA);
 	CREATESPEC(Scheme_Special_If, "if", SPEC_IF);
 
+	CREATESYSDEF(__Scheme_cons__, "cons", 2, 0, 0);
+	CREATESYSDEF(__Scheme_car__, "car", 1, 0, 0);
+	CREATESYSDEF(__Scheme_cdr__, "cdr", 1, 0, 0);
+
+	CREATESYSDEF(__Scheme_CallDisplay__, "display", 1, 0, 0);
+
 	CREATESYSDEF(__Scheme_CallAdd__, "+", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallSub__, "-", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallMul__, "*", 1, 1, 0);
@@ -35,6 +41,9 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESYSDEF(__Scheme_CallALessThanEqual__, "<=", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallAGreaterThan__, ">", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallAGreaterThanEqual__, ">=", 1, 1, 0);
+
+	CREATESYSDEF(__Pred_eq__, "eq?", 2, 0, 0);
+
 	CREATESYSDEF(__Exit__, "exit", 0, 0, 0);
 }
 
@@ -225,11 +234,9 @@ scheme_object * Scheme_ApplyCFunc(scheme_cfunc * cfunc, scheme_object ** args, i
 	if (!cfunc) return NULL;
 
 	if (arg_count < cfunc->arg_count) {
-		puts("SHIIIT");
 		Scheme_SetError("bad arg count");
 		return NULL;
 	} else if (arg_count > cfunc->arg_count && !cfunc->dot_args) {
-		printf("%i %i\n", arg_count, cfunc->arg_count);
 		Scheme_SetError("bad arg count");
 		return NULL;
 	}
