@@ -567,3 +567,85 @@ scheme_object * __Scheme_CallNewline__(scheme_object ** objs, scheme_object * en
 	Scheme_Newline();
 	return NULL;
 }
+
+scheme_object * __Scheme_Quotient__(scheme_object ** objs, scheme_object * env, size_t count) {
+	scheme_object * dividend = objs[0];
+	scheme_object * divisor  = objs[1];
+
+	if (Scheme_IsNull(dividend) || Scheme_IsNull(divisor)) {
+		Scheme_SetError("quotient : expects integer arguments");
+		return NULL;
+	}
+
+	if (dividend->type != SCHEME_NUMBER || divisor->type != SCHEME_NUMBER) {
+		Scheme_SetError("quotient : expects integer arguments");
+		return NULL;
+	}
+
+	scheme_number * a = Scheme_GetNumber(dividend);
+	scheme_number * b = Scheme_GetNumber(divisor);
+
+	if (a->type != NUMBER_INTEGER || b->type != NUMBER_INTEGER) {
+		Scheme_SetError("quotient : expects integer arguments");
+		return NULL;
+	}
+
+	long long quotient = a->integer_val / b->integer_val;
+	return Scheme_CreateInteger(quotient);
+}
+
+scheme_object * __Scheme_Modulo(scheme_object ** objs, scheme_object * env, size_t count) {
+	scheme_object * dividend = objs[0];
+	scheme_object * divisor  = objs[1];
+
+	if (Scheme_IsNull(dividend) || Scheme_IsNull(divisor)) {
+		Scheme_SetError("modulo : expects integer arguments");
+		return NULL;
+	}
+
+	if (dividend->type != SCHEME_NUMBER || divisor->type != SCHEME_NUMBER) {
+		Scheme_SetError("modulo : expects integer arguments");
+		return NULL;
+	}
+
+	scheme_number * a = Scheme_GetNumber(dividend);
+	scheme_number * b = Scheme_GetNumber(divisor);
+
+	if (a->type != NUMBER_INTEGER || b->type != NUMBER_INTEGER) {
+		Scheme_SetError("modulo : expects integer arguments");
+		return NULL;
+	}
+
+	long long modulo = a->integer_val % b->integer_val;
+	if (modulo < 0) modulo = -modulo;
+	if (b->integer_val < 0) modulo = -modulo;
+	return Scheme_CreateInteger(modulo);
+}
+
+scheme_object * __Scheme_Remainder__(scheme_object ** objs, scheme_object * env, size_t count) {
+	scheme_object * dividend = objs[0];
+	scheme_object * divisor  = objs[1];
+
+	if (Scheme_IsNull(dividend) || Scheme_IsNull(divisor)) {
+		Scheme_SetError("remainder : expects integer arguments");
+		return NULL;
+	}
+
+	if (dividend->type != SCHEME_NUMBER || divisor->type != SCHEME_NUMBER) {
+		Scheme_SetError("remainder : expects integer arguments");
+		return NULL;
+	}
+
+	scheme_number * a = Scheme_GetNumber(dividend);
+	scheme_number * b = Scheme_GetNumber(divisor);
+
+	if (a->type != NUMBER_INTEGER || b->type != NUMBER_INTEGER) {
+		Scheme_SetError("remainder : expects integer arguments");
+		return NULL;
+	}
+
+	long long remainder = a->integer_val % b->integer_val;
+	if (remainder < 0) remainder = -remainder;
+	if (a->integer_val < 0) remainder = -remainder;
+	return Scheme_CreateInteger(remainder);
+}

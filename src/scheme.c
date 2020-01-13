@@ -53,6 +53,10 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESYSDEF(__Scheme_CallAGreaterThan__, ">", 1, 1, 0);
 	CREATESYSDEF(__Scheme_CallAGreaterThanEqual__, ">=", 1, 1, 0);
 
+	CREATESYSDEF(__Scheme_Quotient__,  "quotient", 2, 0, 0);
+	CREATESYSDEF(__Scheme_Modulo,      "modulo", 2, 0, 0);
+	CREATESYSDEF(__Scheme_Remainder__, "remainder", 2, 0, 0);
+
 	CREATESYSDEF(__Pred_eq__,   "eq?", 2, 0, 0);
 	CREATESYSDEF(__Pred_null__, "null?", 1, 0, 0);
 

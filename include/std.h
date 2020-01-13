@@ -44,5 +44,9 @@ scheme_object * __Scheme_Arithmetic_LessThanEqual__(scheme_number * nums, int co
 scheme_object * __Scheme_Arithmetic_GreaterThan__(scheme_number * nums, int count);
 scheme_object * __Scheme_Arithmetic_GreaterThanEqual__(scheme_number * nums, int count);
 
+scheme_object * __Scheme_Quotient__(scheme_object ** objs, scheme_object * env, size_t count);
+scheme_object * __Scheme_Modulo(scheme_object ** objs, scheme_object * env, size_t count);
+scheme_object * __Scheme_Remainder__(scheme_object ** objs, scheme_object * env, size_t count);
+
 scheme_object * __Scheme_CallDisplay__(scheme_object ** objs, scheme_object * env, size_t count);
 scheme_object * __Scheme_CallNewline__(scheme_object ** objs, scheme_object * env, size_t count);
