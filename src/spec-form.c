@@ -118,8 +118,8 @@ scheme_object * Scheme_Special_Lambda(scheme_object ** objs, scheme_object* env,
 		Scheme_ReferenceObject(&body[i], objs[i+1]);
 	}
 
-	scheme_object * closure;
-	Scheme_ReferenceObject(&closure, env);
+	scheme_object * closure = env;
+	//Scheme_ReferenceObject(&closure, env);
 
 	scheme_object * lambda = Scheme_CreateLambda(argc, 0, def_args, body_count, body, closure);
 	return lambda;

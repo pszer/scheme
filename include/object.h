@@ -34,6 +34,7 @@ void Scheme_FreeObject(scheme_object * object);
 // required for changing ref_count
 void Scheme_ReferenceObject(scheme_object ** pointer, scheme_object * object);
 void Scheme_DereferenceObject(scheme_object ** pointer);
+void Scheme_DereferenceEnv(scheme_env * env);
 
 #include "scope.h"
 

@@ -69,6 +69,10 @@ void Scheme_ResizeEnv(scheme_env * env, int new_size) {
 	env->size = new_size;
 }
 
+void Scheme_EraseEnv(scheme_env * env, size_t index) {
+	
+}
+
 void Scheme_DefineEnv(scheme_env * env, scheme_define def) {
 	// expand size if necessary
 	if (env->count + 1 == env->size)
@@ -154,5 +158,5 @@ void Scheme_DisplayEnv(scheme_env * env) {
 		if (i != env->count-1) putchar(',');
 		putchar(' ');
 	}
-	printf("}\n");
+	printf("}");
 }

@@ -62,15 +62,36 @@ void Scheme_DereferenceObject(scheme_object ** pointer) {
 	if (!pointer) return;
 
 	if (*pointer) {
-		/*if (pointer[0]->type == SCHEME_ENV) {
-			Scheme_Display(*pointer);
-			printf("deref ref count : %i @ %lli\n", (*pointer)->ref_count, (long long)Scheme_GetEnvObj(*pointer));
-		}*/
 		(*pointer)->ref_count -= 1;
 		if ((*pointer)->ref_count == 0) {
 			Scheme_FreeObject(*pointer);
+		} else {
+			/*if ((*pointer)->type == SCHEME_ENV) {
+				scheme_env * env = Scheme_GetEnvObj(*pointer);
+				Scheme_DereferenceObject(&env->parent);
+			}*/
+	
+			/*if ((*pointer)->type == SCHEME_LAMBDA) {
+				scheme_lambda * lambda = Scheme_GetLambda(*pointer);
+				Scheme_DereferenceObject(&lambda->closure);
+			}*/
 		}
 		*pointer = NULL;
+	}
+}
+
+void Scheme_DereferenceEnv(scheme_env * env) {
+	size_t i;
+	for (i = 0; i < env->count; ++i) {
+		scheme_define * def = env->defs + i;
+		scheme_object * obj = def->object;
+
+		if (obj->ref_count > 1) {
+			Scheme_DereferenceObject(&def->object);
+			def->object = obj;
+		} else {
+			Scheme_DereferenceObject(&def->object);
+		}
 	}
 }
 
@@ -187,6 +208,7 @@ void Scheme_FreeSymbol(scheme_symbol * symbol) {
 
 void Scheme_FreeLambda(scheme_lambda * lambda) {
 	if (lambda == NULL) return;
+
 	if (lambda->arg_ids) {
 		int i;
 		for (i = 0; i < lambda->arg_count; ++i) {
@@ -206,6 +228,8 @@ void Scheme_FreeLambda(scheme_lambda * lambda) {
 	}
 
 	Scheme_DereferenceObject(&lambda->closure);
+
+	//lambda->closure = NULL;
 	free(lambda);
 }
 
@@ -469,7 +493,8 @@ scheme_object * Scheme_CreateLambda(int argc, char dot_args, symbol ** args, int
 	l->arg_ids = args;
 	l->body_count = body_count;
 	l->body = body;
-	l->closure = closure;
+	Scheme_ReferenceObject(&l->closure, closure);
+	//l->closure = closure;
 
 	return obj;
 }

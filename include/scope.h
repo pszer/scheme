@@ -36,7 +36,11 @@ scheme_env Scheme_CreateEnvWithoutRef(scheme_object * parent, int init_size);
 void Scheme_FreeEnv(scheme_env * env);
 void Scheme_ResizeEnv(scheme_env * env, int new_size);
 
+void Scheme_EraseEnv(scheme_env * env, size_t index);
+
 void Scheme_DefineEnv(scheme_env * env, scheme_define def);
 scheme_define * Scheme_GetEnv(scheme_env * env, symbol * sym);
+
+int Scheme_EnvIsIndependent(scheme_env * env);
 
 void Scheme_DisplayEnv(scheme_env * env);

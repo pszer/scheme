@@ -83,6 +83,9 @@ void Scheme_FreeCallStack(void) {
 }
 
 int Scheme_PushCallStack(scheme_call call) {
+	//Scheme_DisplayEnv(Scheme_GetEnvObj(call.env));
+	//printf(" %i refs\n", call.env->ref_count);
+
 	// tail call check
 	if (call_stack_end != call_stack) {
 		scheme_call * last_call = call_stack_end-1;
@@ -120,7 +123,6 @@ scheme_object * Scheme_CallStack(void) {
 	scheme_call * call = call_stack_end - 1;
 
 tail_call:
-	//Scheme_DisplayEnv(Scheme_GetEnvObj(call->env));
 	if (!call->is_cfunc_call) {
 		/* lambda call */
 		scheme_object * return_val = NULL;
@@ -141,6 +143,10 @@ tail_call:
 		if (return_val == &DO_TAIL_CALL) {
 			goto tail_call;
 		} else {
+			/*printf("------ ");
+			Scheme_DisplayEnv(Scheme_GetEnvObj(call->env));
+			printf(" %i refs\n", call->env->ref_count);*/
+
 			Scheme_DereferenceObject(&call->env);
 			return return_val;
 		}
@@ -300,12 +306,9 @@ scheme_object * Scheme_ApplyCFunc(scheme_cfunc * cfunc, scheme_object ** args, i
 	cfunc_call.args = args;
 	cfunc_call.arg_count = arg_count;
 	cfunc_call.env = env;
-	//cfunc_call.env = env;
 
 	Scheme_PushCallStack(cfunc_call);
 	return Scheme_PopCallStack();	
-	//scheme_object * result = cfunc->func(args, env, arg_count);
-	//return result;
 }
 
 scheme_object * Scheme_ApplyCFuncSpecial(scheme_cfunc * cfunc, scheme_object ** args, int arg_count, scheme_object * env) {
@@ -333,8 +336,6 @@ scheme_object * Scheme_ApplyLambda(scheme_lambda * lambda, scheme_object ** args
 
 	int i;
 	scheme_object * new_env_obj = Scheme_CreateEnvObj(lambda->closure, lambda->arg_count+1);
-	//scheme_object * new_env_obj;
-	//Scheme_ReferenceObject(&new_env_obj, lambda->closure);
 	scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
 	for (i = 0; i < arg_count; ++i) {
 		symbol * sym;
