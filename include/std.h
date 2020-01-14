@@ -50,3 +50,5 @@ scheme_object * __Scheme_Remainder__(scheme_object ** objs, scheme_object * env,
 
 scheme_object * __Scheme_CallDisplay__(scheme_object ** objs, scheme_object * env, size_t count);
 scheme_object * __Scheme_CallNewline__(scheme_object ** objs, scheme_object * env, size_t count);
+
+scheme_object * __Scheme_Load__(scheme_object ** objs, scheme_object * env, size_t count);

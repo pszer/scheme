@@ -32,6 +32,7 @@ void Scheme_OverwriteDefine(scheme_define * def, scheme_object * obj);
 // definitions sym->str pointer
 
 scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size);
+scheme_env Scheme_CreateEnvWithoutRef(scheme_object * parent, int init_size);
 void Scheme_FreeEnv(scheme_env * env);
 void Scheme_ResizeEnv(scheme_env * env, int new_size);
 

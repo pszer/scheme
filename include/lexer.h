@@ -92,6 +92,7 @@ int Lexer_GetCharType(int c);
 int Lexer_IsValidSymbolChar(char c);
 int Lexer_CurrChar(struct lexer * lex);
 int Lexer_NextChar(struct lexer * lex);
+int Lexer_EOF(struct lexer * lex);
 
 void Lexer_HandleWhitespaces(struct lexer * lex);
 void Lexer_HandleComments(struct lexer * lex);

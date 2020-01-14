@@ -88,7 +88,7 @@ int Lexer_LoadFromStream(struct lexer * lex, FILE * stream) {
 }
 
 void Lexer_Free(struct lexer * lex) {
-	if (lex && lex->buffer) free(lex->buffer);
+	if (lex && lex->mode == LEXER_STRING && lex->buffer) free(lex->buffer);
 }
 
 int fpeek(FILE *stream) {
@@ -304,4 +304,10 @@ int Lexer_GetCharType(int c) {
 
 int Lexer_IsValidSymbolChar(char c) {
 	return c != '(' && c != ')' && c != '\'' && (isalnum(c) || ispunct(c));
+}
+
+int Lexer_EOF(struct lexer * lex) {
+	if (lex->mode == LEXER_STREAM && lex->last_char == -1)
+		return 0;
+	return Lexer_GetCharType(Lexer_CurrChar(lex)) == CHAR_EOF;
 }

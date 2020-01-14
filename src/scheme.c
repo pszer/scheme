@@ -61,6 +61,7 @@ void Scheme_DefineStartupEnv( void ) {
 	CREATESYSDEF(__Pred_null__, "null?", 1, 0, 0);
 
 	CREATESYSDEF(__Exit__, "exit", 0, 0, 0);
+	CREATESYSDEF(__Scheme_Load__, "load", 1, 0, 0);
 
 	ELSE_SYMBOL = AddSymbol(strdup("else"));
 }
@@ -87,16 +88,13 @@ int Scheme_PushCallStack(scheme_call call) {
 		scheme_call * last_call = call_stack_end-1;
 
 		int do_tail_call = 0;
-		if (call.is_cfunc_call && last_call->is_cfunc_call)
+		/*if (call.is_cfunc_call && last_call->is_cfunc_call)
 			do_tail_call = (call.cfunc == last_call->cfunc);
-		else if (!call.is_cfunc_call && !last_call->is_cfunc_call)
+		else*/
+		if (!call.is_cfunc_call && !last_call->is_cfunc_call)
 			do_tail_call = (call.proc == last_call->proc);
 
 		if (do_tail_call) {
-			scheme_env * last_call_env = Scheme_GetEnvObj(last_call->env);
-			scheme_env * this_call_env = Scheme_GetEnvObj(call.env);
-			this_call_env->parent = last_call_env->parent;
-
 			Scheme_DereferenceObject(&last_call->env);
 			*last_call = call;
 			return 1;
@@ -122,6 +120,7 @@ scheme_object * Scheme_CallStack(void) {
 	scheme_call * call = call_stack_end - 1;
 
 tail_call:
+	//Scheme_DisplayEnv(Scheme_GetEnvObj(call->env));
 	if (!call->is_cfunc_call) {
 		/* lambda call */
 		scheme_object * return_val = NULL;
@@ -333,9 +332,9 @@ scheme_object * Scheme_ApplyLambda(scheme_lambda * lambda, scheme_object ** args
 	}
 
 	int i;
-	//scheme_object * new_env_obj = Scheme_CreateEnvObj(env, lambda->arg_count+1);
-	scheme_object * new_env_obj;
-	Scheme_ReferenceObject(&new_env_obj, lambda->closure);
+	scheme_object * new_env_obj = Scheme_CreateEnvObj(lambda->closure, lambda->arg_count+1);
+	//scheme_object * new_env_obj;
+	//Scheme_ReferenceObject(&new_env_obj, lambda->closure);
 	scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
 	for (i = 0; i < arg_count; ++i) {
 		symbol * sym;
@@ -429,11 +428,11 @@ void Scheme_Display(scheme_object * obj) {
 		}
 		putchar(')');
 
-		for (i = 0; i < lambda->body_count; ++i) {
+		/*for (i = 0; i < lambda->body_count; ++i) {
 			Scheme_Display(lambda->body[i]);
 			if (i != lambda->body_count-1)
 				putchar(' ');
-		}
+		}*/
 	} break;
 
 	case SCHEME_CFUNC:

@@ -185,7 +185,7 @@ scheme_object * Scheme_Special_Cond(scheme_object ** objs, scheme_object* env, s
 
 		if (Scheme_IsNull(clause_expr))
 			return predicate_val;
-		else
+		else if (predicate_val)
 			Scheme_DereferenceObject(&predicate_val);
 
 		while (1) {

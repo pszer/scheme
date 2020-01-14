@@ -445,6 +445,17 @@ scheme_object * Scheme_CreateEnvObj(scheme_object * parent, int init_size) {
 	return obj;
 }
 
+scheme_object * Scheme_CreateEnvObjWithoutRef(scheme_object * parent, int init_size) {
+	scheme_object * obj;
+	int code = Scheme_AllocateObject(&obj, SCHEME_ENV);
+	if (!code) return NULL;
+
+	scheme_env * env = Scheme_GetEnvObj(obj);
+	*env = Scheme_CreateEnvWithoutRef(parent, init_size);
+
+	return obj;
+}
+
 scheme_object * Scheme_CreateLambda(int argc, char dot_args, symbol ** args, int body_count,
 	scheme_object ** body, scheme_object * closure)
 {

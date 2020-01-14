@@ -75,9 +75,7 @@ typedef struct scheme_number {
 } scheme_number;
 
 typedef struct scheme_string {
-	union {
-		char * string, * symbol;
-	};
+	char * string;
 } scheme_string;
 
 typedef struct scheme_symbol {
@@ -137,6 +135,7 @@ scheme_object * Scheme_CreateRational(long long numerator, long long denominator
 scheme_object * Scheme_CreateDouble(double value);
 scheme_object * Scheme_CreateString(char * string);
 scheme_object * Scheme_CreateEnvObj(scheme_object * parent, int init_size);
+scheme_object * Scheme_CreateEnvObjWithoutRef(scheme_object * parent, int init_size);
 scheme_object * Scheme_CreateLambda(int argc, char dot_args, symbol ** args, int body_count,
 	scheme_object ** body, scheme_object * closure);
 scheme_object * Scheme_CreateCFunc(int argc, char dot_args, char special_form,

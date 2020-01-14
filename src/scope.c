@@ -39,6 +39,17 @@ scheme_env Scheme_CreateEnv(scheme_object * parent, int init_size) {
 	return env;
 }
 
+scheme_env Scheme_CreateEnvWithoutRef(scheme_object * parent, int init_size) {
+	scheme_env env;
+	env.parent = parent;
+
+	env.defs = NULL;
+	Scheme_ResizeEnv(&env, init_size);
+	env.count = 0;
+
+	return env;
+}
+
 void Scheme_FreeEnv(scheme_env * env) {
 	if (env->defs) {
 		size_t i;

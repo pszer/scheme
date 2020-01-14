@@ -1,5 +1,6 @@
 #include "std.h"
 #include "scheme.h"
+#include "parser.h"
 
 scheme_object * __Exit__(scheme_object ** objs, scheme_object * env, size_t count) {
 	SCHEME_INTERPRETER_HALT = 1;
@@ -648,4 +649,47 @@ scheme_object * __Scheme_Remainder__(scheme_object ** objs, scheme_object * env,
 	if (remainder < 0) remainder = -remainder;
 	if (a->integer_val < 0) remainder = -remainder;
 	return Scheme_CreateInteger(remainder);
+}
+
+scheme_object * __Scheme_Load__(scheme_object ** objs, scheme_object * env, size_t count) {
+	if (Scheme_IsNull(objs[0]) || objs[0]->type != SCHEME_STRING) {
+		Scheme_SetError("load expects a string");
+		return NULL;
+	}
+
+	FILE * file = fopen(Scheme_GetString(objs[0])->string, "r");
+	if (!file) {
+		Scheme_SetError("cannot load file");
+		return NULL;
+	}
+
+
+	struct lexer lex;
+	if (!Lexer_LoadFromFile(&lex, file)) {
+		Scheme_SetError(Lexer_GetError());
+		fclose(file);
+		return NULL;
+	}
+
+	fclose(file);
+	scheme_object * eval_result = NULL;
+	while (!Lexer_EOF(&lex)) {
+		scheme_object * obj = Parser_Parse(&lex);
+		if (!obj) break;
+
+		if (eval_result)
+			Scheme_DereferenceObject(&eval_result);
+
+		scheme_object * eval_result = Scheme_Eval(obj, USER_INITIAL_ENVIRONMENT_OBJ);
+		Scheme_DereferenceObject(&eval_result);
+		Scheme_DereferenceObject(&obj);
+
+		if (error_str) {
+			eval_result = NULL;
+			break;
+		}
+	}
+
+	Lexer_Free(&lex);
+	return NULL;
 }
