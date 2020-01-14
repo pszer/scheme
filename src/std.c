@@ -161,13 +161,13 @@ void __RationalToDouble__(scheme_number * num) {
 	num->double_val = num->numerator / (double)num->denominator;
 }
 
-#define __CALL_ARITHMETIC(callname, func) \
+#define __CALL_ARITHMETIC(callname, func, err) \
 scheme_object * callname(scheme_object ** objs, scheme_object * env, size_t count) { \
 	scheme_number nums[count]; \
 	size_t i; \
 	for (i = 0; i < count; ++i) { \
 		if (objs[i]->type != SCHEME_NUMBER) { \
-			Scheme_SetError("+ expects only number arguments"); \
+			Scheme_SetError(err " expects only number arguments"); \
 			return NULL; \
 		} \
 		nums[i] = *Scheme_GetNumber(objs[i]); \
@@ -175,15 +175,15 @@ scheme_object * callname(scheme_object ** objs, scheme_object * env, size_t coun
 	return func(nums, count); \
 } 
 
-__CALL_ARITHMETIC(__Scheme_CallAdd__, __Scheme_Add__);
-__CALL_ARITHMETIC(__Scheme_CallSub__, __Scheme_Sub__);
-__CALL_ARITHMETIC(__Scheme_CallMul__, __Scheme_Mul__);
-__CALL_ARITHMETIC(__Scheme_CallDiv__, __Scheme_Div__);
-__CALL_ARITHMETIC(__Scheme_CallAEqual__, __Scheme_Arithmetic_Equal__);
-__CALL_ARITHMETIC(__Scheme_CallALessThan__, __Scheme_Arithmetic_LessThan__);
-__CALL_ARITHMETIC(__Scheme_CallALessThanEqual__, __Scheme_Arithmetic_LessThanEqual__);
-__CALL_ARITHMETIC(__Scheme_CallAGreaterThan__, __Scheme_Arithmetic_GreaterThan__);
-__CALL_ARITHMETIC(__Scheme_CallAGreaterThanEqual__, __Scheme_Arithmetic_GreaterThanEqual__);
+__CALL_ARITHMETIC(__Scheme_CallAdd__, __Scheme_Add__, "+");
+__CALL_ARITHMETIC(__Scheme_CallSub__, __Scheme_Sub__, "-");
+__CALL_ARITHMETIC(__Scheme_CallMul__, __Scheme_Mul__, "*");
+__CALL_ARITHMETIC(__Scheme_CallDiv__, __Scheme_Div__, "/");
+__CALL_ARITHMETIC(__Scheme_CallAEqual__, __Scheme_Arithmetic_Equal__, "=");
+__CALL_ARITHMETIC(__Scheme_CallALessThan__, __Scheme_Arithmetic_LessThan__, "<");
+__CALL_ARITHMETIC(__Scheme_CallALessThanEqual__, __Scheme_Arithmetic_LessThanEqual__, "<=");
+__CALL_ARITHMETIC(__Scheme_CallAGreaterThan__, __Scheme_Arithmetic_GreaterThan__, ">");
+__CALL_ARITHMETIC(__Scheme_CallAGreaterThanEqual__, __Scheme_Arithmetic_GreaterThanEqual__, ">=");
 
 scheme_object * __Scheme_Add__(scheme_number * nums, int count) {
 	scheme_object * result;

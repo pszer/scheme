@@ -86,18 +86,21 @@ int Scheme_PushCallStack(scheme_call call) {
 	//Scheme_DisplayEnv(Scheme_GetEnvObj(call.env));
 	//printf(" %i refs\n", call.env->ref_count);
 
+	//Scheme_DisplayCallStack();
+
 	// tail call check
 	if (call_stack_end != call_stack) {
-		scheme_call * last_call = call_stack_end-1;
+		scheme_call * last_call = call_stack_end - 1;
 
 		int do_tail_call = 0;
-		/*if (call.is_cfunc_call && last_call->is_cfunc_call)
+		if (call.is_cfunc_call && last_call->is_cfunc_call)
 			do_tail_call = (call.cfunc == last_call->cfunc);
-		else*/
+		else
 		if (!call.is_cfunc_call && !last_call->is_cfunc_call)
 			do_tail_call = (call.proc == last_call->proc);
 
 		if (do_tail_call) {
+			puts("TAILL CALLING!!!");
 			Scheme_DereferenceObject(&last_call->env);
 			*last_call = call;
 			return 1;
@@ -115,7 +118,6 @@ scheme_object * Scheme_PopCallStack(void) {
 	}
 
 	scheme_object * result = Scheme_CallStack();
-	--call_stack_end;
 	return result;
 }
 
@@ -148,11 +150,14 @@ tail_call:
 			printf(" %i refs\n", call->env->ref_count);*/
 
 			Scheme_DereferenceObject(&call->env);
+			--call_stack_end;
 			return return_val;
 		}
 	} else {
 		/* cfunc call */
-		return call->cfunc->func(call->args, call->env, call->arg_count);
+		scheme_object * result = call->cfunc->func(call->args, call->env, call->arg_count);
+		--call_stack_end;
+		return result;
 	}
 }
 
@@ -186,6 +191,8 @@ void Scheme_DisplayCallStack(void) {
 }
 
 scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
+	scheme_object * result;
+
 	if (obj == NULL) return NULL;
 
 	switch (obj->type) {
@@ -215,19 +222,11 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 		node = pair->cdr;
 		for (i = 0; i < length; ++i) {
 			scheme_pair * p = Scheme_GetPair(node);
-			if (!is_special_form)
+			/*if (!is_special_form)
 				array[i] = Scheme_Eval(p->car, env);
 			else
-				array[i] = p->car;
-
-			if (error_str) {
-				int j;
-				for (j = 0; j < i && !is_special_form; ++j) {
-					Scheme_DereferenceObject(array + j);
-				}
-
-				return NULL;
-			}
+				array[i] = p->car;*/
+			array[i] = p->car;
 
 			node = p->cdr;
 		}
@@ -235,14 +234,9 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 		apply_result = Scheme_Apply(application, array, length, env);
 
 		Scheme_DereferenceObject(&application);
-		if (!is_special_form) {
-			for (i = 0; i < length; ++i) {
-				Scheme_DereferenceObject(array + i);
-			}
-		}
 
 		free(array);
-		return apply_result;
+		result = apply_result;
 		break; }
 	case SCHEME_SYMBOL: {
 		scheme_symbol * sym;
@@ -262,13 +256,17 @@ scheme_object * Scheme_Eval(scheme_object * obj, scheme_object * env) {
 
 		scheme_object * ref;
 		Scheme_ReferenceObject(&ref, def->object);
-		return ref;
+		result = ref;
+		break;
 		}
 	default: {
 		scheme_object * ref;
 		Scheme_ReferenceObject(&ref, obj);
-		return ref; }
+		result = ref;
+		break; }
 	}
+
+	return result;
 }
 
 scheme_object * Scheme_Apply(scheme_object * func, scheme_object ** args, int arg_count, scheme_object * env) {
@@ -300,15 +298,35 @@ scheme_object * Scheme_ApplyCFunc(scheme_cfunc * cfunc, scheme_object ** args, i
 		return NULL;
 	}
 
+	scheme_object * eval_args[arg_count];
+
 	scheme_call cfunc_call;
 	cfunc_call.is_cfunc_call = 1;
 	cfunc_call.cfunc = cfunc;
-	cfunc_call.args = args;
+	cfunc_call.args = eval_args;
 	cfunc_call.arg_count = arg_count;
 	cfunc_call.env = env;
 
 	Scheme_PushCallStack(cfunc_call);
-	return Scheme_PopCallStack();	
+
+	int i, j;
+	for (i = 0; i < arg_count; ++i) {
+		eval_args[i] = Scheme_Eval(args[i], env);
+		if (error_str) {
+			for (j = 0; j < i; ++i) {
+				Scheme_DereferenceObject(&eval_args[j]);
+				return NULL;
+			}
+		}
+	}
+
+	scheme_object * result = Scheme_PopCallStack();	
+
+	for (i = 0; i < arg_count; ++i) {
+		Scheme_DereferenceObject(&eval_args[i]);
+	}
+
+	return result;
 }
 
 scheme_object * Scheme_ApplyCFuncSpecial(scheme_cfunc * cfunc, scheme_object ** args, int arg_count, scheme_object * env) {
@@ -337,21 +355,31 @@ scheme_object * Scheme_ApplyLambda(scheme_lambda * lambda, scheme_object ** args
 	int i;
 	scheme_object * new_env_obj = Scheme_CreateEnvObj(lambda->closure, lambda->arg_count+1);
 	scheme_env    * new_env = (scheme_env*)new_env_obj->payload;
-	for (i = 0; i < arg_count; ++i) {
-		symbol * sym;
-		ReferenceSymbol(&sym, lambda->arg_ids[i]);
-
-		scheme_object * arg_val;
-		Scheme_ReferenceObject(&arg_val, args[i]);
-		Scheme_DefineEnv(new_env, Scheme_CreateDefine(sym, arg_val));
-	}
 
 	scheme_call call;
 	call.is_cfunc_call = 0;
 	call.proc = lambda;
 	call.env = new_env_obj;
 
-	if (Scheme_PushCallStack(call))
+	int push_result = (Scheme_PushCallStack(call));
+
+	for (i = 0; i < arg_count; ++i) {
+		symbol * sym;
+		ReferenceSymbol(&sym, lambda->arg_ids[i]);
+
+		scheme_object * arg_val;
+		//Scheme_ReferenceObject(&arg_val, args[i]);
+		arg_val = Scheme_Eval(args[i], env);
+
+		if (error_str) {
+			Scheme_FreeObject(new_env_obj);
+			return NULL;
+		}
+
+		Scheme_DefineEnv(new_env, Scheme_CreateDefine(sym, arg_val));
+	}
+
+	if (push_result)
 		return &DO_TAIL_CALL;
 	return Scheme_PopCallStack();
 }

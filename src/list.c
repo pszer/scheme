@@ -34,7 +34,7 @@ int Scheme_ListLength(scheme_object * obj) {
 		}
 
 		scheme_pair * p = Scheme_GetPair(node);
-		if (p->cdr == NULL || p->cdr->type == SCHEME_NULL)
+		if (Scheme_IsNull(p->cdr))
 			return count;
 		node = p->cdr;
 		++count;
